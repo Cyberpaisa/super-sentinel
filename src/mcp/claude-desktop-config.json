@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "super-sentinel": {
+      "command": "npx",
+      "args": ["tsx", "src/mcp/server.ts"],
+      "cwd": "/path/to/super-sentinel"
+    }
+  }
+}
