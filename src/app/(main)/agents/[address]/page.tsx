@@ -3,12 +3,15 @@
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink, GitBranch, Bot } from 'lucide-react';
+import { ArrowLeft, ExternalLink, GitBranch, Bot, Radar } from 'lucide-react';
 import Link from 'next/link';
 import { RatingForm } from '@/components/agent/rating-form';
 import { ReportModal } from '@/components/agent/report-modal';
 import { Spinner } from '@/components/shared/spinner';
+import { TracerScoreBadge } from '@/components/tracer-score-badge';
+import SentinelResults from '@/components/sentinel-results';
 import { useAgent, type AgentDetail } from '@/hooks/use-agent';
+import { useSentinelScan } from '@/hooks/use-sentinel-scan';
 import { cn } from '@/lib/utils/index';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -95,7 +98,7 @@ function IdentityRow({ label, value, mono }: { label: string; value: string; mon
 
 // ─── Tab types ────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'activity' | 'community' | 'metadata';
+type Tab = 'overview' | 'sentinel' | 'activity' | 'community' | 'metadata';
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -120,6 +123,8 @@ export default function AgentProfilePage() {
     enabled: !!address,
     staleTime: 5 * 60 * 1000,
   });
+
+  const { scan, isScanning, error: scanError, runScan } = useSentinelScan();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(address);
@@ -248,6 +253,7 @@ export default function AgentProfilePage() {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'overview',  label: 'Overview' },
+    { id: 'sentinel',  label: 'Sentinel', count: scan ? scan.orchestrator.results.length : undefined },
     { id: 'activity',  label: 'Activity',  count: allEvents.length },
     { id: 'community', label: 'Community', count: agent.ratings.count },
     ...(agent.metadata ? [{ id: 'metadata' as const, label: 'Metadata' }] : []),
@@ -390,6 +396,19 @@ export default function AgentProfilePage() {
           <GitBranch className="h-3 w-3" />
           Trust Graph
         </Link>
+        <button
+          onClick={() => runScan(address)}
+          disabled={isScanning}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition-colors',
+            isScanning
+              ? 'cursor-wait border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] text-[#22D3EE]'
+              : 'border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] text-[#22D3EE] hover:bg-[rgba(34,211,238,0.1)]',
+          )}
+        >
+          <Radar className="h-3 w-3" />
+          {isScanning ? 'Scanning…' : 'Sentinel Scan'}
+        </button>
         <ReportModal agentAddress={address} />
       </div>
 
@@ -541,6 +560,85 @@ export default function AgentProfilePage() {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* ── Tab: Sentinel ── */}
+      {activeTab === 'sentinel' && (
+        <div className="flex flex-col gap-6">
+          {!scan && !isScanning && !scanError && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Radar className="mb-3 h-8 w-8 text-[#475569]" />
+              <p className="mb-4 text-sm text-[#475569]">
+                Run a sentinel scan to verify this agent&apos;s health, TLS, and latency.
+              </p>
+              <button
+                onClick={() => runScan(address)}
+                className="rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-5 py-2.5 text-sm font-semibold text-[#22D3EE] transition-colors hover:bg-[rgba(34,211,238,0.1)]"
+              >
+                Run Sentinel Scan
+              </button>
+            </div>
+          )}
+
+          {isScanning && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Spinner size="lg" />
+              <p className="mt-3 text-sm text-[#64748B]">Running sentinel checks…</p>
+            </div>
+          )}
+
+          {scanError && !scan && (
+            <div className="rounded-lg border border-[rgba(251,113,133,0.2)] bg-[rgba(251,113,133,0.06)] px-4 py-3 text-sm text-[#FB7185]">
+              Scan failed: {scanError.message}
+            </div>
+          )}
+
+          {scan && (
+            <>
+              {/* TRACER Score + Summary */}
+              <div className="grid gap-4 md:grid-cols-[240px_1fr]">
+                <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+                  <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                    TRACER Score
+                  </p>
+                  <TracerScoreBadge score={scan.tracer} />
+                </div>
+
+                <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                      Sentinel Results
+                    </p>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-[#4ADE80]">{scan.orchestrator.summary.passed} passed</span>
+                      {scan.orchestrator.summary.failed > 0 && (
+                        <span className="text-[#FB7185]">{scan.orchestrator.summary.failed} failed</span>
+                      )}
+                      {scan.orchestrator.summary.errored > 0 && (
+                        <span className="text-[#FCD34D]">{scan.orchestrator.summary.errored} errored</span>
+                      )}
+                    </div>
+                  </div>
+                  <SentinelResults
+                    results={scan.orchestrator.results}
+                    errors={scan.orchestrator.errors}
+                  />
+                </div>
+              </div>
+
+              {/* Re-scan button */}
+              <div className="flex justify-center">
+                <button
+                  onClick={() => runScan(address)}
+                  disabled={isScanning}
+                  className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.08)]"
+                >
+                  {isScanning ? 'Scanning…' : 'Re-scan'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
