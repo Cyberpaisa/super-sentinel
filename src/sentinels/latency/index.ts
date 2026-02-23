@@ -5,9 +5,11 @@ const logger = createLogger('sentinel:latency');
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SAMPLE_COUNT = 20;
+const MIN_SUCCESS_SAMPLES = 5;
 
 export interface LatencyData {
   samples: number;
+  successRate: number;
   p50: number | null;
   p95: number | null;
   p99: number | null;
@@ -17,6 +19,7 @@ export interface LatencyData {
 }
 
 function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
   const index = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[Math.max(0, index)];
 }
@@ -54,13 +57,18 @@ export async function checkLatency(
     }
   }
 
+  const successRate = times.length / SAMPLE_COUNT;
+
   if (times.length === 0) {
     logger.warn({ endpoint }, 'All latency samples failed');
     return {
       sentinel: 'latency',
       passed: false,
       score: 0,
-      data: { samples: 0, p50: null, p95: null, p99: null, avgMs: null, minMs: null, maxMs: null },
+      data: {
+        samples: 0, successRate, p50: null, p95: null, p99: null, avgMs: null, minMs: null, maxMs: null,
+        error: `Only 0/${SAMPLE_COUNT} samples succeeded (minimum ${MIN_SUCCESS_SAMPLES} required)`,
+      },
     };
   }
 
@@ -72,6 +80,22 @@ export async function checkLatency(
   const minMs = sorted[0];
   const maxMs = sorted[sorted.length - 1];
 
+  if (times.length < MIN_SUCCESS_SAMPLES) {
+    logger.warn(
+      { endpoint, samples: times.length, successRate },
+      'Insufficient successful latency samples',
+    );
+    return {
+      sentinel: 'latency',
+      passed: false,
+      score: 0,
+      data: {
+        samples: times.length, successRate, p50, p95, p99, avgMs, minMs, maxMs,
+        error: `Only ${times.length}/${SAMPLE_COUNT} samples succeeded (minimum ${MIN_SUCCESS_SAMPLES} required)`,
+      },
+    };
+  }
+
   let score: number;
   if (p95 < 500) score = 100;
   else if (p95 < 1000) score = 80;
@@ -79,12 +103,12 @@ export async function checkLatency(
   else if (p95 < 5000) score = 40;
   else score = 20;
 
-  logger.info({ endpoint, samples: times.length, p50, p95, p99, avgMs, score }, 'Latency check completed');
+  logger.info({ endpoint, samples: times.length, successRate, p50, p95, p99, avgMs, score }, 'Latency check completed');
 
   return {
     sentinel: 'latency',
-    passed: score >= 40,
+    passed: score >= 50,
     score,
-    data: { samples: times.length, p50, p95, p99, avgMs, minMs, maxMs },
+    data: { samples: times.length, successRate, p50, p95, p99, avgMs, minMs, maxMs },
   };
 }

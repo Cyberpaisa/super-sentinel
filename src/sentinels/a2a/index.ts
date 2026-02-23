@@ -21,11 +21,18 @@ export interface A2AData {
  *
  * Pure function: receives a base URL endpoint, returns SentinelResult.
  *
- * Score:
+ * Score tiers:
  *  - Card found + valid schema (name, capabilities, skills, endpoint) → 80 base
  *  - +5 per known capability found (max 100)
- *  - Card found but schema incomplete → 40
+ *  - Card found but schema incomplete → 40 (fail, below threshold)
  *  - Card not found or error → 0
+ *  - passed = score >= 50 (consistent with other sentinels)
+ *
+ * Validation rules:
+ *  - name: non-empty string
+ *  - capabilities: non-null object with >=1 key, or array with >=1 element
+ *  - skills: array with >=1 element
+ *  - endpoint/url: non-empty string
  */
 export async function checkA2A(
   endpoint: string,
@@ -94,11 +101,23 @@ export async function checkA2A(
       };
     }
 
-    // Validate required schema fields: name, capabilities, skills, endpoint
-    const name = typeof card.name === 'string' ? card.name : null;
-    const hasCapabilities = 'capabilities' in card;
-    const hasSkills = 'skills' in card;
-    const hasEndpoint = 'endpoint' in card || 'url' in card;
+    // Validate required schema fields with type checks, not just key existence
+    const name = typeof card.name === 'string' && card.name.length > 0 ? card.name : null;
+
+    // capabilities: must be a non-null object with >=1 key, or an array with >=1 element
+    const capVal = card.capabilities;
+    const hasCapabilities =
+      capVal != null &&
+      typeof capVal === 'object' &&
+      (Array.isArray(capVal) ? capVal.length > 0 : Object.keys(capVal).length > 0);
+
+    // skills: must be an array with at least one element
+    const hasSkills = Array.isArray(card.skills) && card.skills.length > 0;
+
+    // endpoint or url: must be a non-empty string
+    const endpointVal = card.endpoint ?? card.url;
+    const hasEndpoint = typeof endpointVal === 'string' && endpointVal.length > 0;
+
     const schemaValid = name !== null && hasCapabilities && hasSkills && hasEndpoint;
 
     // Extract known capabilities
@@ -144,7 +163,7 @@ export async function checkA2A(
 
     return {
       sentinel: 'a2a',
-      passed: score >= 40,
+      passed: score >= 50,
       score,
       data: {
         cardFound: true,

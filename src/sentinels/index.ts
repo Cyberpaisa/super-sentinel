@@ -19,6 +19,10 @@ import { checkA2A } from './a2a';
 import { checkMCP } from './mcp';
 import { checkX402 } from './x402';
 
+// New pure sentinels (non-endpoint-based)
+import { checkOnChain } from './onchain';
+import { checkRatings, type RatingInput } from './ratings';
+
 // On-chain sentinels existentes (address-based) — NO se modifican
 import { detectProxy, type ProxyDetectionResult } from '@/services/centinela/proxy-detector';
 import { matchOZBytecodeByAddress, type OZMatchResult } from '@/services/centinela/oz-matcher';
@@ -33,6 +37,8 @@ export { checkLatency, type LatencyData } from './latency';
 export { checkA2A, type A2AData } from './a2a';
 export { checkMCP, type MCPData } from './mcp';
 export { checkX402, type X402Data } from './x402';
+export { checkOnChain, type OnChainData } from './onchain';
+export { checkRatings, type RatingInput, type RatingsData } from './ratings';
 
 /**
  * Adapter: wraps proxy-detector result into uniform SentinelResult.
@@ -148,6 +154,7 @@ export async function runOnChainSentinels(address: string): Promise<Orchestrator
   const namedChecks = [
     { name: 'proxy', fn: () => runProxySentinel(address) },
     { name: 'oz-match', fn: () => runOZSentinel(address) },
+    { name: 'on-chain', fn: () => checkOnChain(address) },
   ];
 
   const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));
@@ -184,25 +191,85 @@ export async function runOnChainSentinels(address: string): Promise<Orchestrator
 }
 
 /**
- * Run ALL sentinels (endpoint + on-chain) for a full agent scan.
+ * Run context sentinels that don't depend on an endpoint or address.
+ *
+ * Currently includes the ratings sentinel. Accepts optional inputs;
+ * only runs sentinels for which data is provided.
+ */
+export async function runContextSentinels(options: {
+  ratings?: RatingInput[];
+}): Promise<OrchestratorResult> {
+  const timestamp = new Date().toISOString();
+  logger.info('Starting context sentinel scan');
+
+  const namedChecks: Array<{ name: string; fn: () => Promise<SentinelResult> }> = [];
+
+  if (options.ratings && options.ratings.length > 0) {
+    namedChecks.push({ name: 'ratings', fn: () => checkRatings(options.ratings!) });
+  }
+
+  const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));
+
+  const results: SentinelResult[] = [];
+  const errors: Array<{ sentinel: string; reason: string }> = [];
+
+  settled.forEach((outcome, i) => {
+    if (outcome.status === 'fulfilled') {
+      results.push(outcome.value);
+    } else {
+      errors.push({
+        sentinel: namedChecks[i].name,
+        reason: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason),
+      });
+    }
+  });
+
+  const passed = results.filter((r) => r.passed).length;
+  const scores = results.map((r) => r.score);
+  const averageScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+
+  const summary = {
+    total: namedChecks.length,
+    passed,
+    failed: results.filter((r) => !r.passed).length,
+    errored: errors.length,
+    averageScore,
+  };
+
+  logger.info({ summary }, 'Context sentinel scan completed');
+
+  return { target: 'context', timestamp, results, errors, summary };
+}
+
+/**
+ * Run ALL sentinels (endpoint + on-chain + context) for a full agent scan.
  *
  * This is the main entry point for a complete agent verification.
- * Runs endpoint-based and on-chain sentinels in parallel, then merges results.
+ * Runs endpoint-based, on-chain, and context sentinels in parallel, then merges results.
+ *
+ * Optional `ratings` and `rpcUrl` allow feeding the ratings and on-chain sentinels.
  */
 export async function runAllSentinels(
   endpoint: string,
-  address: string
+  address: string,
+  options?: { ratings?: RatingInput[]; rpcUrl?: string }
 ): Promise<OrchestratorResult> {
   const timestamp = new Date().toISOString();
   logger.info({ endpoint, address }, 'Starting full sentinel scan');
 
-  const [endpointResult, onChainResult] = await Promise.all([
+  const tasks: Promise<OrchestratorResult>[] = [
     runEndpointSentinels(endpoint),
     runOnChainSentinels(address),
-  ]);
+  ];
 
-  const results = [...endpointResult.results, ...onChainResult.results];
-  const errors = [...endpointResult.errors, ...onChainResult.errors];
+  if (options?.ratings && options.ratings.length > 0) {
+    tasks.push(runContextSentinels({ ratings: options.ratings }));
+  }
+
+  const orchestratorResults = await Promise.all(tasks);
+
+  const results = orchestratorResults.flatMap((r) => r.results);
+  const errors = orchestratorResults.flatMap((r) => r.errors);
 
   const passed = results.filter((r) => r.passed).length;
   const scores = results.map((r) => r.score);

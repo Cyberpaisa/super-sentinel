@@ -25,10 +25,12 @@ export interface X402Data {
  *
  * Pure function: receives an endpoint URL, returns SentinelResult.
  *
- * Score:
- *  - 402 status + valid X-402 headers + CAIP-10 recipient → 90
- *  - 402 status without valid headers → 60
- *  - Non-402 status → 0
+ * Score tiers:
+ *  - Non-402 response                              → score = 0, fail
+ *  - 402 but NO X-402 headers                      → score = 20, fail
+ *  - 402 with some X-402 headers, no valid CAIP-10 → score = 70, pass
+ *  - 402 with headers AND valid CAIP-10 recipient  → score = 90, pass
+ *  - passed = score >= 50 (consistent with other sentinels)
  *  - Error or timeout → 0
  */
 export async function checkX402(
@@ -81,21 +83,21 @@ export async function checkX402(
     const hasHeaders = Object.keys(headers).length > 0;
     const validRecipient = recipient ? CAIP10_REGEX.test(recipient) : false;
 
-    // Score: 402 + valid headers + CAIP-10 recipient = 90, 402 without headers = 60
+    // Score tiers: no headers = 20 (fail), headers w/o CAIP-10 = 70, headers + CAIP-10 = 90
     let score: number;
     if (hasHeaders && validRecipient) {
       score = 90;
     } else if (hasHeaders) {
       score = 70;
     } else {
-      score = 60;
+      score = 20; // 402 without any X-402 headers — not a proper x402 implementation
     }
 
     logger.info({ endpoint, score, headers, validRecipient }, 'x402 check completed — 402 detected');
 
     return {
       sentinel: 'x402',
-      passed: true,
+      passed: score >= 50,
       score,
       data: {
         supported: true,

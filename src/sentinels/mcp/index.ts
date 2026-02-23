@@ -18,9 +18,11 @@ export interface MCPData {
  *
  * Pure function: receives a base URL endpoint, returns SentinelResult.
  *
- * Score:
- *  - Valid JSON-RPC response with tools → 80 base + 2 per tool (max 100)
- *  - Invalid JSON-RPC or no tools → 0
+ * Score tiers:
+ *  - No valid JSON-RPC response → score = 0, fail
+ *  - Valid JSON-RPC but 0 tools  → score = 0, fail
+ *  - Valid JSON-RPC with tools   → 50 + tools.length * 5 (capped at 100)
+ *  - passed = score >= 50 (consistent with other sentinels)
  *  - Error or timeout → 0
  */
 export async function checkMCP(
@@ -111,14 +113,14 @@ export async function checkMCP(
       .map((t) => (typeof t.name === 'string' ? t.name : null))
       .filter((n): n is string => n !== null);
 
-    // Score: 80 base for valid JSON-RPC + 2 per tool (max 100)
-    const score = Math.min(100, 80 + tools.length * 2);
+    // Score: 0 tools = 0 (fail), 1+ tools = 50 + tools * 5 (capped at 100)
+    const score = tools.length === 0 ? 0 : Math.min(100, 50 + tools.length * 5);
 
     logger.info({ endpoint, score, toolCount: tools.length, tools }, 'MCP check completed');
 
     return {
       sentinel: 'mcp',
-      passed: true,
+      passed: score >= 50,
       score,
       data: {
         endpoint,
