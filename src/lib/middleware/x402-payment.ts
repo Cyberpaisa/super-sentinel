@@ -1,42 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/utils/logger';
 import { verifyX402Payment } from './x402-verify';
-import { EarningsTracker } from '@/survival/earnings-tracker';
+import { X402_CONFIG } from './x402-config';
+
+// Re-export config so existing imports keep working
+export { X402_CONFIG } from './x402-config';
 
 const logger = createLogger('x402-payment');
-
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
-/**
- * x402 payment protocol configuration.
- *
- * The protocol uses HTTP 402 (Payment Required) to signal that an endpoint is
- * monetised.  When a client receives a 402 it reads the `X-402-*` response
- * headers, constructs a payment on the specified network, and retries the
- * request with a proof-of-payment header.
- *
- * Toggle the feature with the `X402_PAYMENT_ENABLED` env var.
- */
-export const X402_CONFIG = {
-  /** Price per request in USDC (6-decimal format: 500000 = $0.50) */
-  price: '500000',
-  /** Token symbol */
-  currency: 'USDC',
-  /** Formatted price for display */
-  priceFormatted: '$0.50',
-  /** USDC contract address on Avalanche C-Chain */
-  asset: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
-  /** CAIP-2 chain identifier – Avalanche C-Chain mainnet */
-  network: 'eip155:43114',
-  /** Address that receives the payment */
-  recipient:
-    process.env.X402_RECIPIENT_ADDRESS ||
-    '0x0000000000000000000000000000000000000000',
-  /** Kill-switch: the middleware is a no-op when disabled */
-  enabled: process.env.X402_PAYMENT_ENABLED === 'true',
-} as const;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,13 +100,20 @@ export function withX402Payment(
     );
 
     // Record the earning for survival tracking (A3 fix)
-    EarningsTracker.getInstance().recordEarning({
-      txHash: payment.nonce, // nonce serves as unique identifier
-      payer: payment.payer,
-      amountUSDC: payment.amountUSDC,
-      service: 'full-scan',
-      timestamp: new Date().toISOString(),
-    });
+    // Lazy import to avoid circular dependency at module load time
+    try {
+      const { EarningsTracker } = await import('@/survival/earnings-tracker');
+      EarningsTracker.getInstance().recordEarning({
+        txHash: payment.nonce,
+        payer: payment.payer,
+        amountUSDC: payment.amountUSDC,
+        service: 'full-scan',
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Survival module may not be available — that's ok
+      logger.debug('Could not record earning (survival module unavailable)');
+    }
 
     // Execute the protected handler
     const response = await handler(request);

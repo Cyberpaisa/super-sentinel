@@ -17,7 +17,7 @@ Super Sentinel is a self-sustaining AI agent that scans, verifies, and scores th
 | **Registry** | ERC-8004 (`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`) |
 | **Sentinels** | 11 independent micro-sentinels |
 | **Scoring** | TRACER 6-dimension model |
-| **Tests** | 165 passing (Vitest) |
+| **Tests** | 179 passing (Vitest) |
 | **Identity** | [SOUL.md](./SOUL.md) |
 | **Rules** | [constitution.md](./constitution.md) |
 
@@ -152,9 +152,34 @@ USDC contract: `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E` (Avalanche mainnet, 
 
 ---
 
-## Survival Engine
+## Survival Engine (Opt-in)
 
-Super Sentinel monitors its own economic viability in real-time.
+The survival engine is **fully optional**. Super Sentinel works as a free, open-source scanner without it. Enable it when you want the agent to operate autonomously with its own economy.
+
+| Mode | What works | What's disabled | Config needed |
+|------|-----------|----------------|---------------|
+| **Scanner only** (default) | All 11 sentinels, TRACER scoring, quick-check, heartbeat | x402 payments, survival tiers, balance tracking | None — works out of the box |
+| **Survival enabled** | Everything above + autonomous economy | Nothing | `AGENT_WALLET_ADDRESS`, `AVALANCHE_RPC_URL` |
+
+To enable survival mode, set these environment variables:
+```env
+# Optional — enables survival engine
+AGENT_WALLET_ADDRESS=0x...    # Agent's USDC wallet on Avalanche C-Chain
+AVALANCHE_RPC_URL=https://...  # Avalanche RPC endpoint
+```
+
+When survival is NOT configured:
+- Scans work normally (free or paid depending on x402 config)
+- Heartbeat returns `tier: "UNCONFIGURED"`
+- No balance checks, no conservation mode
+- The agent runs indefinitely as a traditional service
+
+When survival IS configured:
+- The agent monitors its own USDC balance
+- x402 payments are verified with EIP-712 signatures and recorded
+- If earnings < costs for 24h, the agent enters CONSERVATION mode
+- In CONSERVATION mode, paid scans return 503 to reduce compute costs
+- Free endpoints (quick-check, heartbeat) always remain available
 
 ### Tiers
 
@@ -240,14 +265,14 @@ Status values: `alive` (THRIVING/SUSTAINABLE), `degraded` (CONSERVATION), `dying
 
 ## Modules
 
-| Module | Path | Purpose |
-|--------|------|---------|
-| Sentinels | `src/sentinels/` | 11 micro-sentinel implementations |
-| TRACER Scoring | `src/sentinels/scoring/` | 6-dimension scoring engine |
-| Cooldown Monitor | `src/modules/cooldown-monitor/` | URI stability monitoring (ERC-8172 ready) |
-| Survival Engine | `src/survival/` | Economic viability monitoring |
-| Heartbeat | `src/heartbeat/` | Public liveness reporting |
-| x402 Middleware | `src/lib/middleware/x402-payment.ts` | Payment gating for premium endpoints |
+| Module | Path | Status | Tests |
+|--------|------|--------|-------|
+| Sentinels (11) | `src/sentinels/` | Production | 85 |
+| TRACER Scoring | `src/sentinels/scoring/` | Production | 25 |
+| Cooldown Monitor | `src/modules/cooldown-monitor/` | Production | 42 |
+| Survival Engine | `src/survival/` | Opt-in | 14 |
+| x402 Verification | `src/lib/middleware/` | Production | 14 |
+| Heartbeat | `src/heartbeat/` | Production | — |
 
 ---
 
@@ -278,7 +303,7 @@ npx tsx scripts/sentinel-scan.ts <endpoint-url>
 npx vitest run
 ```
 
-165 tests across 15 test files. Covers all sentinels, TRACER scoring, cooldown monitor, and orchestrator.
+179 tests across 17 test files. Covers all sentinels, TRACER scoring, cooldown monitor, x402 verification, and orchestrator.
 
 ---
 
@@ -298,6 +323,26 @@ npx vitest run
 
 ---
 
+## Security Audit
+
+The survival engine passed a 15-finding security audit ([docs/SURVIVAL-AUDIT.md](./docs/SURVIVAL-AUDIT.md)):
+
+| Severity | Found | Fixed | Remaining |
+|----------|-------|-------|-----------|
+| CRITICAL | 2 | 2 | 0 |
+| HIGH | 4 | 4 | 0 |
+| MEDIUM | 5 | 0 | 5 (acceptable for beta) |
+| LOW | 4 | 0 | 4 (backlog) |
+
+Key security measures:
+- x402 payments verified with EIP-712 typed data signatures (not just header presence)
+- Anti-replay protection with nonce tracking
+- Rate limiting on all free endpoints (heartbeat: 10/min, quick-check: 30/min)
+- Survival enforcement: conservation mode reduces functionality to cut costs
+- Earnings persist to database with graceful fallback to in-memory
+
+---
+
 ## Documents
 
 | Document | Description |
@@ -305,6 +350,7 @@ npx vitest run
 | [SOUL.md](./SOUL.md) | Agent identity — who Super Sentinel is |
 | [constitution.md](./constitution.md) | Immutable rules — what Super Sentinel will never do |
 | [docs/TRACER-AUDIT.md](./docs/TRACER-AUDIT.md) | TRACER scoring system security audit |
+| [docs/SURVIVAL-AUDIT.md](./docs/SURVIVAL-AUDIT.md) | Survival engine security & viability audit |
 | [docs/FULL-AGENT-AUDIT.md](./docs/FULL-AGENT-AUDIT.md) | Comprehensive audit of Apex + AvaRiskScan agents |
 
 ---

@@ -13,7 +13,7 @@
 
 import { verifyTypedData, type Hex } from 'viem';
 import { createLogger } from '@/lib/utils/logger';
-import { X402_CONFIG } from './x402-payment';
+import { X402_CONFIG } from './x402-config';
 
 const logger = createLogger('x402-verify');
 
