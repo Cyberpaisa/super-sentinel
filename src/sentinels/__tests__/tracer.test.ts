@@ -208,3 +208,136 @@ describe('TRACER Scoring Engine', () => {
     expect(high.total).toBeLessThanOrEqual(100);
   });
 });
+
+describe('TRACER Edge Cases', () => {
+  it('should clamp sentinel score > 100 to 100', () => {
+    const results = [makeSentinel('tls', 200)];
+    const tracer = calculateTRACER(results);
+    expect(tracer.dimensions.trust.score).toBeLessThanOrEqual(100);
+    expect(tracer.total).toBeLessThanOrEqual(100);
+  });
+
+  it('should clamp sentinel score < 0 to 0', () => {
+    const results = [makeSentinel('health', -50)];
+    const tracer = calculateTRACER(results);
+    expect(tracer.dimensions.reliability.score).toBeGreaterThanOrEqual(0);
+    expect(tracer.total).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should treat NaN sentinel score as 0', () => {
+    const results = [makeSentinel('tls', NaN)];
+    const tracer = calculateTRACER(results);
+    expect(tracer.dimensions.trust.score).toBe(0);
+    expect(tracer.total).toBe(0);
+  });
+
+  it('should clamp reputationScore > 100 to 100', () => {
+    const tracer = calculateTRACER([], 200);
+    expect(tracer.dimensions.reputation.score).toBeLessThanOrEqual(100);
+  });
+
+  it('should clamp reputationScore < 0 to 0', () => {
+    const tracer = calculateTRACER([], -50);
+    expect(tracer.dimensions.reputation.score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should return 0 with empty results array', () => {
+    const tracer = calculateTRACER([]);
+    expect(tracer.total).toBe(0);
+    expect(tracer.tier).toBe('FAIL');
+    expect(tracer.sentinelCount).toBe(0);
+  });
+
+  it('should average duplicate sentinel entries for same name', () => {
+    const results = [
+      makeSentinel('health', 80),
+      makeSentinel('health', 60),
+    ];
+    const tracer = calculateTRACER(results);
+    // Both go into reliability: avg(80,60) = 70
+    expect(tracer.dimensions.reliability.score).toBe(70);
+    expect(tracer.sentinelCount).toBe(2);
+  });
+
+  it('should not exceed 65 without capability and reputation', () => {
+    // Max possible without capability and reputation sentinels
+    const results = [
+      makeSentinel('tls', 100),
+      makeSentinel('proxy', 100),
+      makeSentinel('health', 100),
+      makeSentinel('latency', 100),
+      makeSentinel('mcp', 100),
+      makeSentinel('a2a', 100),
+      makeSentinel('x402', 100),
+    ];
+    const tracer = calculateTRACER(results);
+    // trust=100*0.20 + reliability=100*0.20 + autonomy=100*0.15 + economics=100*0.10 = 65
+    expect(tracer.total).toBeLessThanOrEqual(65);
+    expect(tracer.tier).not.toBe('VERIFIED');
+    expect(tracer.tier).not.toBe('PASS');
+  });
+
+  it('should produce exactly 60 when all sentinels score 60 (gaming test)', () => {
+    const results = [
+      makeSentinel('tls', 60),
+      makeSentinel('proxy', 60),
+      makeSentinel('oz-match', 60),
+      makeSentinel('health', 60),
+      makeSentinel('latency', 60),
+      makeSentinel('mcp', 60),
+      makeSentinel('a2a', 60),
+      makeSentinel('on-chain', 60),
+      makeSentinel('x402', 60),
+    ];
+    const tracer = calculateTRACER(results, 60);
+    expect(tracer.total).toBe(60);
+    expect(tracer.tier).toBe('PARTIAL');
+  });
+
+  it('should never produce total > 100 even with extreme inputs', () => {
+    const results = [
+      makeSentinel('tls', 999),
+      makeSentinel('proxy', 999),
+      makeSentinel('oz-match', 999),
+      makeSentinel('health', 999),
+      makeSentinel('latency', 999),
+      makeSentinel('mcp', 999),
+      makeSentinel('a2a', 999),
+      makeSentinel('on-chain', 999),
+      makeSentinel('x402', 999),
+    ];
+    const tracer = calculateTRACER(results, 999);
+    expect(tracer.total).toBeLessThanOrEqual(100);
+  });
+
+  it('should never produce total < 0 even with negative inputs', () => {
+    const results = [
+      makeSentinel('tls', -999),
+      makeSentinel('health', -999),
+      makeSentinel('mcp', -999),
+      makeSentinel('x402', -999),
+    ];
+    const tracer = calculateTRACER(results, -999);
+    expect(tracer.total).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should silently ignore unknown sentinel names', () => {
+    const results = [
+      makeSentinel('health', 100),
+      makeSentinel('totally-unknown', 100),
+    ];
+    const tracer = calculateTRACER(results);
+    expect(tracer.dimensions.reliability.score).toBe(100);
+    // Only reliability contributes: 100*0.20 = 20
+    expect(tracer.total).toBe(20);
+  });
+
+  it('should handle single sentinel correctly', () => {
+    const results = [makeSentinel('x402', 90)];
+    const tracer = calculateTRACER(results);
+    expect(tracer.dimensions.economics.score).toBe(90);
+    // 90 * 0.10 = 9
+    expect(tracer.total).toBe(9);
+    expect(tracer.tier).toBe('FAIL');
+  });
+});

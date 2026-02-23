@@ -62,17 +62,17 @@ export const TRACER_WEIGHTS = {
 } as const;
 
 /**
- * Mapping of sentinel names to TRACER dimensions.
+ * Mapping of sentinel names to TRACER dimensions (a sentinel can feed multiple dimensions).
  */
-export const SENTINEL_TO_DIMENSION: Record<string, keyof typeof TRACER_WEIGHTS> = {
-  tls: 'trust',
-  proxy: 'trust',
-  'oz-match': 'trust',
-  health: 'reliability',
-  latency: 'reliability',
-  mcp: 'autonomy',
-  a2a: 'autonomy',
-  'on-chain': 'capability',
-  x402: 'economics',
-  ratings: 'reputation',
+export const SENTINEL_TO_DIMENSIONS: Record<string, Array<keyof typeof TRACER_WEIGHTS>> = {
+  tls: ['trust'],
+  proxy: ['trust'],
+  'oz-match': ['trust', 'capability'],
+  health: ['reliability'],
+  latency: ['reliability'],
+  mcp: ['autonomy'],
+  a2a: ['autonomy'],
+  'on-chain': ['capability'],
+  x402: ['economics'],
+  ratings: ['reputation'],
 };

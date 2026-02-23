@@ -12,5 +12,5 @@ export {
   type TRACERDimension,
   type TRACERTier,
   TRACER_WEIGHTS,
-  SENTINEL_TO_DIMENSION,
+  SENTINEL_TO_DIMENSIONS,
 } from './types';

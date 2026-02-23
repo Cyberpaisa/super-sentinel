@@ -21,25 +21,14 @@ import {
   type TRACERDimension,
   type TRACERTier,
   TRACER_WEIGHTS,
-  SENTINEL_TO_DIMENSION,
+  SENTINEL_TO_DIMENSIONS,
 } from './types';
 
-/**
- * Sentinel-to-dimension mapping (a sentinel can feed multiple dimensions).
- * Key: sentinel name, Value: array of dimension names.
- */
-const SENTINEL_DIMENSIONS: Record<string, Array<keyof typeof TRACER_WEIGHTS>> = {
-  tls: ['trust'],
-  proxy: ['trust'],
-  'oz-match': ['trust', 'capability'],
-  health: ['reliability'],
-  latency: ['reliability'],
-  mcp: ['autonomy'],
-  a2a: ['autonomy'],
-  'on-chain': ['capability'],
-  x402: ['economics'],
-  ratings: ['reputation'],
-};
+/** Clamp a value to [0, 100] range. NaN becomes 0. */
+function clamp(value: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
 
 function classifyTier(score: number): TRACERTier {
   if (score >= 80) return 'VERIFIED';
@@ -102,11 +91,11 @@ export function calculateTRACER(
 
   // Route each sentinel result to its dimension(s)
   for (const result of results) {
-    const dimensions = SENTINEL_DIMENSIONS[result.sentinel];
+    const dimensions = SENTINEL_TO_DIMENSIONS[result.sentinel];
     if (!dimensions) continue;
 
     for (const dim of dimensions) {
-      dimensionScores[dim].push(result.score);
+      dimensionScores[dim].push(clamp(result.score));
       if (!dimensionSources[dim].includes(result.sentinel)) {
         dimensionSources[dim].push(result.sentinel);
       }
@@ -115,7 +104,7 @@ export function calculateTRACER(
 
   // Inject reputation score if provided (from Prisma ratings, external to sentinels)
   if (reputationScore !== undefined) {
-    dimensionScores.reputation.push(reputationScore);
+    dimensionScores.reputation.push(clamp(reputationScore));
     if (!dimensionSources.reputation.includes('ratings')) {
       dimensionSources.reputation.push('ratings');
     }
@@ -130,10 +119,10 @@ export function calculateTRACER(
   const reputation = buildDimension('reputation', TRACER_WEIGHTS.reputation, dimensionScores.reputation, dimensionSources.reputation);
 
   // Composite total
-  const total = Math.round(
+  const total = Math.max(0, Math.min(100, Math.round(
     trust.weighted + reliability.weighted + autonomy.weighted +
     capability.weighted + economics.weighted + reputation.weighted
-  );
+  )));
 
   const tier = classifyTier(total);
   const sentinelCount = results.length + (reputationScore !== undefined ? 1 : 0);
