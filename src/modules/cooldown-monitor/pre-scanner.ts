@@ -15,16 +15,12 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 /** Fields that affect agent identity — changes here are high-risk */
 const IDENTITY_FIELDS = ['name', 'description', 'image'] as const;
-/** Fields that affect service endpoints — changes here are medium-risk */
-const SERVICE_FIELDS = ['services'] as const;
-/** Fields that affect payment — changes here are high-risk */
-const PAYMENT_FIELDS = ['x402Support'] as const;
 
 /**
  * Fetch a registration JSON from a URI.
  * Returns null if unreachable or invalid JSON.
  */
-async function fetchRegistration(uri: string): Promise<Record<string, any> | null> {
+async function fetchRegistration(uri: string): Promise<Record<string, unknown> | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -47,7 +43,7 @@ async function fetchRegistration(uri: string): Promise<Record<string, any> | nul
 /**
  * Validate that a JSON object looks like an ERC-8004 registration.
  */
-function isValidRegistration(data: Record<string, any>): boolean {
+function isValidRegistration(data: Record<string, unknown>): boolean {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -61,8 +57,8 @@ function isValidRegistration(data: Record<string, any>): boolean {
  * Compare two registration objects and return changed fields.
  */
 function diffRegistrations(
-  oldReg: Record<string, any>,
-  newReg: Record<string, any>
+  oldReg: Record<string, unknown>,
+  newReg: Record<string, unknown>
 ): string[] {
   const changedFields: string[] = [];
   const allKeys = new Set([...Object.keys(oldReg), ...Object.keys(newReg)]);
@@ -92,8 +88,8 @@ function diffRegistrations(
 function calculateRisk(
   reachable: boolean,
   validSchema: boolean,
-  oldReg: Record<string, any> | null,
-  newReg: Record<string, any> | null,
+  oldReg: Record<string, unknown> | null,
+  newReg: Record<string, unknown> | null,
   changedFields: string[]
 ): { riskScore: number; riskReasons: string[] } {
   let risk = 0;
@@ -150,7 +146,7 @@ export async function preScanURIChange(change: URIChange): Promise<PreScanResult
   const validSchema = newReg ? isValidRegistration(newReg) : false;
 
   // Fetch old registration (if we have the previous URI)
-  let oldReg: Record<string, any> | null = null;
+  let oldReg: Record<string, unknown> | null = null;
   if (change.previousURI) {
     oldReg = await fetchRegistration(change.previousURI);
   }

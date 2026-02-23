@@ -99,7 +99,7 @@ describe('URI Stability Sentinel', () => {
 
   it('should return score 20 for critical risk (>70)', async () => {
     const { preScanURIChange } = await import('../pre-scanner');
-    (preScanURIChange as any).mockResolvedValueOnce({
+    (preScanURIChange as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       newURI: 'https://evil.xyz/agent.json',
       reachable: false,
       validSchema: false,

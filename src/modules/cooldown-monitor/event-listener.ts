@@ -205,12 +205,15 @@ export class CooldownEventListener {
   // -----------------------------------------------------------------------
 
   private async handleURIUpdated(log: Log): Promise<void> {
-    const args = (log as any).args;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const args = (log as Record<string, any>).args as
+      | { agentId?: bigint; newURI?: string; updatedBy?: `0x${string}` }
+      | undefined;
     if (!args?.agentId || !args?.newURI) return;
 
-    const agentId = args.agentId as bigint;
-    const newURI = args.newURI as string;
-    const updatedBy = (args.updatedBy as `0x${string}`) ?? '0x0000000000000000000000000000000000000000';
+    const agentId = args.agentId;
+    const newURI = args.newURI;
+    const updatedBy = args.updatedBy ?? '0x0000000000000000000000000000000000000000';
 
     // Determine previous URI from history or contract
     const existingChanges = this.history.get(agentId.toString());
