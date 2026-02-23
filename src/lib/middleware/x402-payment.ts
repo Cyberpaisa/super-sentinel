@@ -18,10 +18,14 @@ const logger = createLogger('x402-payment');
  * Toggle the feature with the `X402_PAYMENT_ENABLED` env var.
  */
 export const X402_CONFIG = {
-  /** Price per request denominated in `currency` */
-  price: '0.001',
-  /** Native token / asset symbol */
-  currency: 'AVAX',
+  /** Price per request in USDC (6-decimal format: 500000 = $0.50) */
+  price: '500000',
+  /** Token symbol */
+  currency: 'USDC',
+  /** Formatted price for display */
+  priceFormatted: '$0.50',
+  /** USDC contract address on Avalanche C-Chain */
+  asset: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
   /** CAIP-2 chain identifier – Avalanche C-Chain mainnet */
   network: 'eip155:43114',
   /** Address that receives the payment */
@@ -55,6 +59,7 @@ function paymentRequiredResponse(): NextResponse {
         'Content-Type': 'application/json',
         'X-402-Price': X402_CONFIG.price,
         'X-402-Currency': X402_CONFIG.currency,
+        'X-402-Asset': X402_CONFIG.asset,
         'X-402-Network': X402_CONFIG.network,
         'X-402-Recipient': X402_CONFIG.recipient,
         'X-402-Version': '1',
@@ -133,4 +138,23 @@ export function withX402Payment(
 
     return handler(request);
   };
+}
+
+// ---------------------------------------------------------------------------
+// Scan-type aware wrapper
+// ---------------------------------------------------------------------------
+
+/**
+ * Wrap a route handler with x402 payment gating based on scan type.
+ *
+ * - `'quick'` scans are free — the handler executes without any payment check.
+ * - `'full'` scans require payment via the standard `withX402Payment` flow.
+ */
+export function withX402ScanPayment(
+  handler: (request: NextRequest) => Promise<NextResponse>,
+  scanType: 'full' | 'quick' = 'full'
+) {
+  // Quick scans are free — skip payment check
+  if (scanType === 'quick') return handler;
+  return withX402Payment(handler);
 }

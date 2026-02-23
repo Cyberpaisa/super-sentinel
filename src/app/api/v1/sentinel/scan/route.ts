@@ -5,6 +5,8 @@ import { createLogger } from '@/lib/utils/logger';
 import { runEndpointSentinels } from '@/sentinels';
 import { calculateTRACER } from '@/sentinels/scoring';
 import { resolveAgentEndpoint } from '@/services/centinela/sentinels/resolve-endpoint';
+import { withX402Payment } from '@/lib/middleware/x402-payment';
+import { recordScan } from '@/heartbeat';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -25,8 +27,11 @@ const logger = createLogger('api-sentinel-scan');
  * - tracer: TRACER 6-dimension score with tier classification
  *
  * Rate limited by middleware (100 req/min default).
+ *
+ * Pricing: $0.50 USDC per scan via x402 payment protocol.
+ * Free alternative: GET /api/v1/sentinel/quick-check (health + TLS only).
  */
-export async function POST(request: NextRequest) {
+async function scanHandler(request: NextRequest) {
   try {
     const body = await request.json() as Record<string, unknown>;
 
@@ -86,6 +91,9 @@ export async function POST(request: NextRequest) {
       sentinels: orchestratorResult.summary,
     }, 'Sentinel scan completed');
 
+    // Record scan for heartbeat tracking
+    recordScan(normalizedAddress);
+
     return successResponse({
       address: normalizedAddress,
       endpoint,
@@ -97,3 +105,6 @@ export async function POST(request: NextRequest) {
     return handleError(error);
   }
 }
+
+// Wrap with x402 payment — full scans cost $0.50 USDC
+export const POST = withX402Payment(scanHandler);
