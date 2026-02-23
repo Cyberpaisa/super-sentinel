@@ -15,6 +15,9 @@ import { type SentinelResult, type OrchestratorResult } from './types';
 import { checkHealth } from './health';
 import { checkTLS } from './tls';
 import { checkLatency } from './latency';
+import { checkA2A } from './a2a';
+import { checkMCP } from './mcp';
+import { checkX402 } from './x402';
 
 // On-chain sentinels existentes (address-based) — NO se modifican
 import { detectProxy, type ProxyDetectionResult } from '@/services/centinela/proxy-detector';
@@ -27,6 +30,9 @@ export { type SentinelResult, type OrchestratorResult, type SentinelConfig, type
 export { checkHealth, type HealthData } from './health';
 export { checkTLS, type TLSData, type TLSGrade } from './tls';
 export { checkLatency, type LatencyData } from './latency';
+export { checkA2A, type A2AData } from './a2a';
+export { checkMCP, type MCPData } from './mcp';
+export { checkX402, type X402Data } from './x402';
 
 /**
  * Adapter: wraps proxy-detector result into uniform SentinelResult.
@@ -91,6 +97,9 @@ export async function runEndpointSentinels(endpoint: string): Promise<Orchestrat
     { name: 'health', fn: () => checkHealth(endpoint) },
     { name: 'tls', fn: () => checkTLS(endpoint) },
     { name: 'latency', fn: () => checkLatency(endpoint) },
+    { name: 'a2a', fn: () => checkA2A(endpoint) },
+    { name: 'mcp', fn: () => checkMCP(endpoint) },
+    { name: 'x402', fn: () => checkX402(endpoint) },
   ];
 
   const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));

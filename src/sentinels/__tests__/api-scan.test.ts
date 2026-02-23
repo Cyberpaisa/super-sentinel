@@ -13,7 +13,7 @@ describe('Sentinel Scan Pipeline (API simulation)', () => {
     const orchestratorResult = await runEndpointSentinels('https://httpbin.org/get');
 
     expect(orchestratorResult.results.length).toBeGreaterThan(0);
-    expect(orchestratorResult.summary.total).toBe(3);
+    expect(orchestratorResult.summary.total).toBe(6);
 
     // Step 2: Calculate TRACER from sentinel results
     const tracer: TRACERScore = calculateTRACER(orchestratorResult.results);
@@ -90,6 +90,6 @@ describe('Sentinel Scan Pipeline (API simulation)', () => {
     expect(apiResponse.data).toHaveProperty('tracer');
     expect(apiResponse.error).toBeNull();
     expect(apiResponse.data.tracer.tier).toBeDefined();
-    expect(apiResponse.data.orchestrator.summary.total).toBe(3);
+    expect(apiResponse.data.orchestrator.summary.total).toBe(6);
   });
 });

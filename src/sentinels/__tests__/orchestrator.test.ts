@@ -12,9 +12,9 @@ describe('Sentinel Orchestrator', () => {
     expect(result).toHaveProperty('errors');
     expect(result).toHaveProperty('summary');
 
-    // Should have run 3 sentinels: health, tls, latency
-    expect(result.summary.total).toBe(3);
-    expect(result.results.length + result.errors.length).toBe(3);
+    // Should have run 6 sentinels: health, tls, latency, a2a, mcp, x402
+    expect(result.summary.total).toBe(6);
+    expect(result.results.length + result.errors.length).toBe(6);
 
     // Each result has the uniform SentinelResult shape
     for (const r of result.results) {
@@ -36,7 +36,7 @@ describe('Sentinel Orchestrator', () => {
     expect(result.summary.passed).toBeGreaterThanOrEqual(0);
     expect(result.summary.failed).toBeGreaterThanOrEqual(0);
     expect(result.summary.errored).toBeGreaterThanOrEqual(0);
-    expect(result.summary.passed + result.summary.failed + result.summary.errored).toBe(3);
+    expect(result.summary.passed + result.summary.failed + result.summary.errored).toBe(6);
     expect(result.summary.averageScore).toBeGreaterThanOrEqual(0);
     expect(result.summary.averageScore).toBeLessThanOrEqual(100);
   });
