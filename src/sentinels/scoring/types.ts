@@ -75,4 +75,5 @@ export const SENTINEL_TO_DIMENSIONS: Record<string, Array<keyof typeof TRACER_WE
   'on-chain': ['capability'],
   x402: ['economics'],
   ratings: ['reputation'],
+  'uri-stability': ['trust'],
 };
