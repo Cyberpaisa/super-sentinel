@@ -19,6 +19,16 @@ const rateLimiters = {
     points: 5,
     duration: 3600,
   }),
+  // Heartbeat: 10 requests per minute per IP (A1 fix — prevent balance monitoring abuse)
+  heartbeat: new RateLimiterMemory({
+    points: 10,
+    duration: 60,
+  }),
+  // Quick-check: 30 requests per minute per IP (A2 fix — prevent free-tier abuse)
+  quickCheck: new RateLimiterMemory({
+    points: 30,
+    duration: 60,
+  }),
 };
 
 /**
@@ -49,6 +59,23 @@ function shouldSkipRateLimit(pathname: string): boolean {
  */
 function isRegistrationEndpoint(pathname: string): boolean {
   return pathname.includes('/register') || pathname.includes('/signup');
+}
+
+/**
+ * Select the appropriate rate limiter for a given path.
+ * Stricter limits for free/public endpoints to prevent abuse.
+ */
+function selectRateLimiter(pathname: string): { limiter: RateLimiterMemory; key: string } {
+  if (pathname.includes('/heartbeat')) {
+    return { limiter: rateLimiters.heartbeat, key: 'heartbeat' };
+  }
+  if (pathname.includes('/quick-check')) {
+    return { limiter: rateLimiters.quickCheck, key: 'quickCheck' };
+  }
+  if (isRegistrationEndpoint(pathname)) {
+    return { limiter: rateLimiters.register, key: 'register' };
+  }
+  return { limiter: rateLimiters.default, key: 'default' };
 }
 
 /**
@@ -84,11 +111,8 @@ export async function middleware(request: NextRequest) {
   // Apply rate limiting for API routes (skip health endpoints)
   if (pathname.startsWith('/api') && !shouldSkipRateLimit(pathname)) {
     try {
-      const limiter = isRegistrationEndpoint(pathname)
-        ? rateLimiters.register
-        : rateLimiters.default;
-
-      const limiterKey = `${clientIp}_${isRegistrationEndpoint(pathname) ? 'register' : 'default'}`;
+      const { limiter, key } = selectRateLimiter(pathname);
+      const limiterKey = `${clientIp}_${key}`;
       const rateLimitRes = await limiter.consume(limiterKey);
 
       // Add rate limit headers to successful responses later

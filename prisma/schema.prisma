@@ -419,6 +419,24 @@ model TransactionVolume {
 }
 
 // ============================================
+// SURVIVAL ENGINE (x402 Earnings)
+// ============================================
+
+/// x402 payment received by the agent (survival engine persistence)
+model SurvivalEarning {
+  id        String   @id @default(uuid())
+  txHash    String   @unique @map("tx_hash") // nonce/txHash as idempotency key
+  payer     String   // payer wallet address
+  amountRaw String   @map("amount_raw") // USDC 6-decimal bigint as string
+  service   String   // e.g. "full-scan"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([payer])
+  @@map("survival_earnings")
+}
+
+// ============================================
 // TRACER SCORING (v2)
 // ============================================
 

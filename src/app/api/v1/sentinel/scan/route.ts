@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
 import { ValidationError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
@@ -33,6 +33,33 @@ const logger = createLogger('api-sentinel-scan');
  */
 async function scanHandler(request: NextRequest) {
   try {
+    // C2 fix: Check survival status — refuse scans when functionality is reduced
+    try {
+      const { getSurvivalStatus } = await import('@/survival/survival-loop');
+      const survival = await getSurvivalStatus();
+
+      if (survival.shouldReduceFunctionality) {
+        logger.warn(
+          { tier: survival.tier, hoursUntilDeath: survival.hoursUntilDeath },
+          'Scan refused — survival engine triggered functionality reduction',
+        );
+        return new NextResponse(
+          JSON.stringify({
+            data: null,
+            error: {
+              message: 'Service temporarily unavailable — agent is in conservation mode',
+              code: 'SERVICE_DEGRADED',
+              tier: survival.tier,
+            },
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+        );
+      }
+    } catch {
+      // Survival module may not be configured — continue serving scans
+      logger.debug('Survival check skipped (module unavailable)');
+    }
+
     const body = await request.json() as Record<string, unknown>;
 
     const address = body.address;

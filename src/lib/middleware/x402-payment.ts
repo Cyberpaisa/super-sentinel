@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/utils/logger';
+import { verifyX402Payment } from './x402-verify';
+import { EarningsTracker } from '@/survival/earnings-tracker';
 
 const logger = createLogger('x402-payment');
 
@@ -44,12 +46,12 @@ export const X402_CONFIG = {
  * Build the standard 402 Payment Required response with x402 discovery
  * headers so that compliant clients can automatically fulfil the payment.
  */
-function paymentRequiredResponse(): NextResponse {
+function paymentRequiredResponse(reason?: string): NextResponse {
   return new NextResponse(
     JSON.stringify({
       data: null,
       error: {
-        message: 'Payment required',
+        message: reason ?? 'Payment required',
         code: 'PAYMENT_REQUIRED',
       },
     }),
@@ -63,6 +65,7 @@ function paymentRequiredResponse(): NextResponse {
         'X-402-Network': X402_CONFIG.network,
         'X-402-Recipient': X402_CONFIG.recipient,
         'X-402-Version': '1',
+        ...(reason && { 'X-402-Reason': reason }),
       },
     }
   );
@@ -85,18 +88,8 @@ function paymentRequiredResponse(): NextResponse {
  * If neither header is present the middleware responds with HTTP 402 and the
  * `X-402-*` headers that describe how to pay.
  *
- * @example
- * ```ts
- * // src/app/api/v1/scan/route.ts
- * import { withX402Payment } from '@/lib/middleware/x402-payment';
- *
- * async function handler(request: NextRequest) {
- *   // ... perform sentinel scan
- *   return NextResponse.json({ data: result, error: null });
- * }
- *
- * export const POST = withX402Payment(handler);
- * ```
+ * On successful verification, the payment is recorded in the EarningsTracker
+ * and payer metadata is attached as response headers.
  */
 export function withX402Payment(
   handler: (request: NextRequest) => Promise<NextResponse>
@@ -107,54 +100,51 @@ export function withX402Payment(
       return handler(request);
     }
 
-    const paymentSignature = request.headers.get('X-Payment-Signature');
-    const paymentToken = request.headers.get('X-Payment-Token');
+    const paymentProof =
+      request.headers.get('X-Payment-Signature') ||
+      request.headers.get('X-Payment-Token');
 
-    // No proof-of-payment → tell the client how to pay.
-    if (!paymentSignature && !paymentToken) {
-      logger.debug('No payment proof provided – returning 402');
+    // No proof-of-payment -> tell the client how to pay.
+    if (!paymentProof) {
+      logger.debug('No payment proof provided - returning 402');
       return paymentRequiredResponse();
     }
 
-    // TODO: Verify payment signature using Coinbase CDP SDK
-    // -------------------------------------------------------
-    // 1. If `paymentToken` is present, validate it against the CDP
-    //    facilitator API (or a local JWT if self-issued).
-    // 2. If `paymentSignature` is present, recover the signer via
-    //    EIP-712 typed-data verification, then confirm the on-chain
-    //    transfer to `X402_CONFIG.recipient` on the configured network.
-    // 3. Reject with 402 (+ reason header) if verification fails.
-    // 4. Optionally attach verified payment metadata to the request so
-    //    downstream handlers can access payer address / tx hash.
-    // -------------------------------------------------------
+    // Verify the payment proof (EIP-712 signature + business rules)
+    const result = await verifyX402Payment(paymentProof);
+
+    if (!result.ok) {
+      logger.warn({ reason: result.reason }, 'Payment verification failed');
+      return paymentRequiredResponse(result.reason);
+    }
+
+    const { payment } = result;
 
     logger.info(
       {
-        hasSignature: !!paymentSignature,
-        hasToken: !!paymentToken,
+        payer: payment.payer,
+        amount: payment.amountUSDC.toString(),
+        nonce: payment.nonce,
       },
-      'Payment proof received'
+      'Payment verified — executing handler',
     );
 
-    return handler(request);
+    // Record the earning for survival tracking (A3 fix)
+    EarningsTracker.getInstance().recordEarning({
+      txHash: payment.nonce, // nonce serves as unique identifier
+      payer: payment.payer,
+      amountUSDC: payment.amountUSDC,
+      service: 'full-scan',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Execute the protected handler
+    const response = await handler(request);
+
+    // Attach payer metadata to the response for transparency
+    response.headers.set('X-402-Payer', payment.payer);
+    response.headers.set('X-402-Paid', payment.amountUSDC.toString());
+
+    return response;
   };
-}
-
-// ---------------------------------------------------------------------------
-// Scan-type aware wrapper
-// ---------------------------------------------------------------------------
-
-/**
- * Wrap a route handler with x402 payment gating based on scan type.
- *
- * - `'quick'` scans are free — the handler executes without any payment check.
- * - `'full'` scans require payment via the standard `withX402Payment` flow.
- */
-export function withX402ScanPayment(
-  handler: (request: NextRequest) => Promise<NextResponse>,
-  scanType: 'full' | 'quick' = 'full'
-) {
-  // Quick scans are free — skip payment check
-  if (scanType === 'quick') return handler;
-  return withX402Payment(handler);
 }

@@ -74,8 +74,8 @@ export async function getSurvivalStatus(): Promise<SurvivalStatus> {
   // 1. Credit (on-chain balance)
   const credit = await getBalance();
 
-  // 2. Earnings (in-memory)
-  const earnings: EarningsSummary = EarningsTracker.getInstance().getSummary();
+  // 2. Earnings (in-memory + DB)
+  const earnings: EarningsSummary = EarningsTracker.getInstance().getSummarySync();
 
   // 3. Costs (in-memory counters)
   const costs: CostEstimate = CostTracker.getInstance().getCostEstimate();
