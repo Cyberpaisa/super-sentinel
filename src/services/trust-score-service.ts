@@ -639,3 +639,66 @@ export async function getTrustScoreBreakdown(
   // Calculate fresh score
   return calculateTrustScore(agentAddress);
 }
+
+// ---------------------------------------------------------------------------
+// TRACER Scoring (v2) — coexists with legacy scoring above
+// ---------------------------------------------------------------------------
+
+import { calculateTRACER, type TRACERScore } from '@/sentinels/scoring';
+import { type SentinelResult } from '@/sentinels/types';
+
+export type { TRACERScore };
+
+/**
+ * Calculate the TRACER score for an agent using sentinel results.
+ *
+ * This is the v2 scoring engine that replaces the 5-component trust score
+ * with 6 TRACER dimensions fed by real sentinel checks.
+ *
+ * Both scoring systems coexist during the migration period.
+ * The legacy calculateTrustScore() reads from Prisma cache.
+ * This function takes fresh sentinel results and community ratings.
+ *
+ * @param results - Array of SentinelResult from the orchestrator
+ * @param agentAddress - Agent address for fetching community ratings from Prisma
+ * @returns TRACERScore with dimensions, total, and tier
+ */
+export async function calculateTRACERScore(
+  results: SentinelResult[],
+  agentAddress: string
+): Promise<TRACERScore> {
+  const normalizedAddress = agentAddress.toLowerCase();
+
+  logger.info({ address: normalizedAddress }, 'Calculating TRACER score');
+
+  // Fetch community ratings for the reputation dimension
+  let reputationScore: number | undefined;
+  try {
+    const ratings = await prisma.rating.findMany({
+      where: { agentId: normalizedAddress },
+      select: { rating: true },
+    });
+
+    if (ratings.length > 0) {
+      const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
+      const average = sum / ratings.length;
+      reputationScore = Math.round((average / 5) * 100);
+    }
+  } catch (error) {
+    logger.warn({ address: normalizedAddress, error }, 'Failed to fetch ratings for TRACER');
+  }
+
+  const tracerScore = calculateTRACER(results, reputationScore);
+
+  logger.info(
+    {
+      address: normalizedAddress,
+      total: tracerScore.total,
+      tier: tracerScore.tier,
+      sentinelCount: tracerScore.sentinelCount,
+    },
+    'TRACER score calculated'
+  );
+
+  return tracerScore;
+}
