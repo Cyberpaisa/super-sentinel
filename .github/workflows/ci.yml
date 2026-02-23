@@ -2,53 +2,122 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main, develop, "feat/**"]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
-      - run: npm ci
-      - run: npx tsc --noEmit
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript compiler
+        run: npx tsc --noEmit
 
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
-      - run: npm ci
-      - run: npx vitest run src/sentinels/__tests__/tracer.test.ts
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TRACER unit tests
+        run: npx vitest run src/sentinels/__tests__/tracer.test.ts
+
+  prisma-validate:
+    name: Prisma Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        env:
+          DATABASE_URL: 'postgresql://postgres:password@localhost:5432/enigma'
+          DIRECT_URL: 'postgresql://postgres:password@localhost:5432/enigma'
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-      DIRECT_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-      NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy"
-      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: "dummy"
-      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
-      NEXT_PUBLIC_CHAIN_ENV: "testnet"
-      NEXT_PUBLIC_AVALANCHE_RPC_URL: "https://api.avax-test.network/ext/bc/C/rpc"
+    needs: [lint, typecheck]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
-      - run: npm ci
-      - run: npx prisma generate
-      - run: npm run build
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+          DIRECT_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'placeholder-id' }}
+          NEXT_PUBLIC_SITE_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_CHAIN_ENV: 'testnet'
+          NEXT_PUBLIC_AVALANCHE_RPC_URL: 'https://api.avax-test.network/ext/bc/C/rpc'
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
