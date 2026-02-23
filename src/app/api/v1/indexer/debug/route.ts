@@ -2,20 +2,11 @@ import { NextRequest } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
 import { createLogger } from '@/lib/utils/logger';
 import { publicClient, isMainnet } from '@/lib/blockchain/client';
-import { type Address } from 'viem';
+import { ERC8004_CONTRACTS } from '@/config/contracts';
 
 export const dynamic = 'force-dynamic';
 
 const logger = createLogger('api-indexer-debug');
-
-const REGISTRY_ADDRESSES = {
-  mainnet: {
-    identity: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432' as Address,
-  },
-  testnet: {
-    identity: '0x8004A818BFB912233c491871b3d84c89A494BD9e' as Address,
-  },
-};
 
 /**
  * GET /api/v1/indexer/debug
@@ -24,8 +15,8 @@ const REGISTRY_ADDRESSES = {
 export async function GET(_request: NextRequest) {
   try {
     const registryAddress = isMainnet()
-      ? REGISTRY_ADDRESSES.mainnet.identity
-      : REGISTRY_ADDRESSES.testnet.identity;
+      ? ERC8004_CONTRACTS.identity.mainnet
+      : ERC8004_CONTRACTS.identity.testnet;
     const network = isMainnet() ? 'mainnet' : 'testnet';
 
     logger.info({ registryAddress, network }, 'Debug: checking events');

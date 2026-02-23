@@ -5,19 +5,13 @@ import { IDENTITY_REGISTRY_ABI } from '@/lib/blockchain/abis/identity-registry';
 import { createAgent } from './agent-service';
 import type { CreateAgentInput } from './agent-service';
 import { prisma } from '@/lib/database/prisma';
+import { ERC8004_CONTRACTS, type Network } from '@/config/contracts';
 
 const logger = createLogger('indexer-service');
 
-// ── Registry addresses per network ─────────────────────────────────
-const REGISTRY_ADDRESSES = {
-  mainnet: '0x8004A818BFB912233c491871b3d84c89A494BD9e' as Address,
-  testnet: '0x8004A818BFB912233c491871b3d84c89A494BD9e' as Address,
-};
-
-const REPUTATION_REGISTRY = {
-  mainnet: '0x8004B663056A597Dffe9eCcC1965A193B7388713' as Address,
-  testnet: '0x8004B663056A597Dffe9eCcC1965A193B7388713' as Address, // TODO: Add testnet address when deployed
-};
+// ── Registry addresses per network (from single source of truth) ───
+const REGISTRY_ADDRESSES = ERC8004_CONTRACTS.identity;
+const REPUTATION_REGISTRY = ERC8004_CONTRACTS.reputation;
 
 // ── Dedicated RPC clients (independent of app's CHAIN_ENV) ─────────
 const mainnetClient = createPublicClient({
@@ -38,7 +32,7 @@ const testnetClient = createPublicClient({
   }),
 });
 
-export type Network = 'mainnet' | 'testnet';
+export type { Network };
 
 function getClient(network: Network): PublicClient {
   return network === 'mainnet' ? mainnetClient : testnetClient;

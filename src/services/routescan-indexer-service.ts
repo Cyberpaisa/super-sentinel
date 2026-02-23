@@ -10,11 +10,12 @@ import { avalanche } from 'viem/chains';
 import { createAgent } from './agent-service';
 import type { CreateAgentInput } from './agent-service';
 import { prisma } from '@/lib/database/prisma';
+import { ERC8004_CONTRACTS } from '@/config/contracts';
 
 const logger = createLogger('routescan-indexer');
 
-// Registry address on mainnet
-const REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432' as Address;
+// Registry address on mainnet (from single source of truth)
+const REGISTRY = ERC8004_CONTRACTS.identity.mainnet;
 const ROUTESCAN_API = 'https://api.routescan.io/v2/network/mainnet/evm/43114/erc721-transfers';
 
 const ABI = [

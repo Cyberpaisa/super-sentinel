@@ -1,9 +1,8 @@
-import { type Address } from 'viem';
 import { prisma } from '@/lib/database/prisma';
-import { publicClient } from '@/lib/blockchain/client';
 import { ContractNotFoundError, RPCError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
 import { type ChallengeType, type HeartbeatResult } from '@prisma/client';
+import { resolveAgentEndpoint } from './sentinels/resolve-endpoint';
 
 const logger = createLogger('heartbeat-service');
 
@@ -50,63 +49,55 @@ export interface UptimeResult {
 }
 
 /**
- * Execute a heartbeat ping to an agent
- * Since agents are smart contracts, we verify they are still deployed and responsive
+ * Execute a heartbeat ping to an agent via HTTP fetch.
+ * Uses AbortController with a 5000ms timeout for a real health check.
  *
- * @param address - Agent contract address
+ * @param agentAddress - Agent address (used to resolve endpoint)
  * @returns Heartbeat ping result
  */
-async function executeHeartbeatPing(address: Address): Promise<HeartbeatPingResult> {
+async function executeHeartbeatPing(agentAddress: string): Promise<HeartbeatPingResult> {
+  const endpoint = await resolveAgentEndpoint(agentAddress);
+
+  if (!endpoint) {
+    return {
+      success: false,
+      responseTimeMs: null,
+      result: 'FAIL',
+      errorMessage: 'No HTTP endpoint found in agent metadata',
+    };
+  }
+
   const startTime = Date.now();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
 
   try {
-    // Create an AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
+    const response = await fetch(endpoint, {
+      method: 'HEAD',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
-    try {
-      // Perform a simple contract existence check as heartbeat
-      // This verifies the contract is still accessible on-chain
-      const code = await Promise.race([
-        publicClient.getCode({ address }),
-        new Promise<never>((_, reject) => {
-          controller.signal.addEventListener('abort', () => {
-            reject(new Error('Heartbeat timeout'));
-          });
-        }),
-      ]);
-
-      clearTimeout(timeoutId);
-
-      const responseTimeMs = Date.now() - startTime;
-
-      // Check if contract still has code
-      if (!code || code === '0x') {
-        return {
-          success: false,
-          responseTimeMs,
-          result: 'FAIL',
-          errorMessage: 'Contract no longer exists at address',
-        };
-      }
-
-      return {
-        success: true,
-        responseTimeMs,
-        result: 'PASS',
-      };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  } catch (error) {
     const responseTimeMs = Date.now() - startTime;
 
-    // Check if it's a timeout
-    if (error instanceof Error && error.message === 'Heartbeat timeout') {
+    if (response.ok) {
+      return { success: true, responseTimeMs, result: 'PASS' };
+    }
+
+    return {
+      success: false,
+      responseTimeMs,
+      result: 'FAIL',
+      errorMessage: `HTTP ${response.status} ${response.statusText}`,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    const responseTimeMs = Date.now() - startTime;
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
       return {
         success: false,
-        responseTimeMs: null, // null for timeout
+        responseTimeMs: null,
         result: 'TIMEOUT',
         errorMessage: `Heartbeat timed out after ${HEARTBEAT_TIMEOUT_MS}ms`,
       };
@@ -148,8 +139,8 @@ export async function sendHeartbeat(
       throw new ContractNotFoundError(agentAddress);
     }
 
-    // Execute the heartbeat ping
-    const pingResult = await executeHeartbeatPing(normalizedAddress as Address);
+    // Execute the heartbeat ping via HTTP
+    const pingResult = await executeHeartbeatPing(normalizedAddress);
 
     // Log the result to database
     await prisma.heartbeatLog.create({
