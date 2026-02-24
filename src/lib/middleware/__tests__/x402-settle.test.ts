@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Mock x402-verify
 vi.mock('../x402-verify', () => ({
@@ -47,7 +47,6 @@ describe('x402 facilitator settlement', () => {
   }
 
   function makeHandler() {
-    const { NextResponse } = require('next/server');
     return vi.fn().mockResolvedValue(
       NextResponse.json({ data: 'scan-results', error: null })
     );
