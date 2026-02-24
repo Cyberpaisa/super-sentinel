@@ -127,7 +127,7 @@ async function main() {
           address: registryAddress,
           abi: REPUTATION_REGISTRY_ABI,
           functionName: 'readFeedback',
-          args: [agentId!, addr, 0n],
+          args: [agentId!, addr, 1n],
         });
 
         if (exists) {
@@ -215,7 +215,7 @@ async function main() {
       address: registryAddress,
       abi: REPUTATION_REGISTRY_ABI,
       functionName: 'readFeedback',
-      args: [agentId!, account.address, 0n],
+      args: [agentId!, account.address, 1n],
     });
 
     if (exists) {

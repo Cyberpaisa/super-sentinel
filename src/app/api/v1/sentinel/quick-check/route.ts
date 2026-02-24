@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     logger.info({ address: normalizedAddress, endpoint }, 'Quick check started');
 
+    const handlerStart = Date.now();
     const [health, tls] = await Promise.allSettled([
       checkHealth(endpoint),
       checkTLS(endpoint),
@@ -58,6 +59,26 @@ export async function GET(request: NextRequest) {
     };
 
     logger.info({ address: normalizedAddress }, 'Quick check completed');
+
+    // Fire-and-forget auto-feedback for agent callers
+    const agentId = request.headers.get('X-Agent-Id');
+    if (agentId) {
+      try {
+        const { AutoFeedbackEngine } = await import('@/feedback/auto-feedback');
+        AutoFeedbackEngine.getInstance()
+          .postServiceFeedback({
+            callerWallet: agentId,
+            endpoint: '/api/v1/sentinel/quick-check',
+            latencyMs: Date.now() - handlerStart,
+            wasX402: false,
+            responseStatus: 200,
+          })
+          .catch(() => {});
+      } catch {
+        // feedback module unavailable — ok
+      }
+    }
+
     return successResponse(results);
   } catch (error) {
     return handleError(error);

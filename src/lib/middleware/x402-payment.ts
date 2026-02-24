@@ -233,7 +233,24 @@ export function withX402Payment(
     }
 
     // Execute the protected handler
+    const handlerStart = Date.now();
     const response = await handler(request);
+
+    // Fire-and-forget auto-feedback
+    try {
+      const { AutoFeedbackEngine } = await import('@/feedback/auto-feedback');
+      AutoFeedbackEngine.getInstance()
+        .postServiceFeedback({
+          callerWallet: payment.payer,
+          endpoint: request.nextUrl.pathname,
+          latencyMs: Date.now() - handlerStart,
+          wasX402: true,
+          responseStatus: response.status,
+        })
+        .catch(() => {});
+    } catch {
+      // feedback module unavailable — ok
+    }
 
     // Attach payer metadata to the response for transparency
     response.headers.set('X-402-Payer', payment.payer);
