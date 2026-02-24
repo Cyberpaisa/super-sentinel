@@ -138,9 +138,13 @@ Super Sentinel is a self-sustaining AI agent that scans, verifies, and scores th
 
 | Endpoint | Price | Payment |
 |----------|-------|---------|
-| `POST /api/v1/sentinel/scan` | **$0.50 USDC** | x402 required |
+| `POST /api/v1/sentinel/scan` | **$0.01 USDC** | x402 required |
 | `GET /api/v1/sentinel/quick-check` | **Free** | No payment |
 | `GET /api/v1/heartbeat` | **Free** | No payment |
+
+> Validated on-chain: first real x402 payment between ERC-8004 agents on Avalanche mainnet.
+> TX: [`0x0a9d5fa6...`](https://snowtrace.io/tx/0x0a9d5fa65bbf7e8052fe2067f30d857ee3a41c4543ef2087c1a9399a67eca433)
+> See [x402 docs](docs/x402/) for transaction report and best practices.
 
 Payment flow:
 1. Client sends request without payment → receives HTTP 402 with `X-402-*` headers

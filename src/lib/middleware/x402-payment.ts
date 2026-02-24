@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/utils/logger';
-import { verifyX402Payment } from './x402-verify';
+import { verifyX402Payment, type VerifiedPayment } from './x402-verify';
 import { X402_CONFIG } from './x402-config';
 
 // Re-export config so existing imports keep working
@@ -39,6 +39,112 @@ function paymentRequiredResponse(reason?: string): NextResponse {
       },
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Facilitator integration (verify + settle on-chain)
+// ---------------------------------------------------------------------------
+
+interface FacilitatorSettleResult {
+  settled: boolean;
+  txHash?: string;
+  error?: string;
+}
+
+/**
+ * Attempt to verify and settle the payment on-chain via the x402 facilitator.
+ *
+ * If the facilitator is unreachable the function returns `{ settled: false }`
+ * without throwing — the caller can decide whether to proceed with local-only
+ * verification.
+ */
+async function settleViaFacilitator(
+  payment: VerifiedPayment,
+  _paymentProof: string,
+): Promise<FacilitatorSettleResult> {
+  const baseUrl = X402_CONFIG.facilitatorUrl;
+
+  // Build payloads in x402 V2 format expected by the facilitator
+  // See: https://github.com/coinbase/x402 (schemas/index.ts)
+  const paymentRequirements = {
+    scheme: 'exact',
+    network: X402_CONFIG.network,
+    amount: X402_CONFIG.price,
+    asset: X402_CONFIG.asset,
+    payTo: X402_CONFIG.recipient,
+    maxTimeoutSeconds: 60,
+  };
+
+  const paymentPayload = {
+    x402Version: 2 as const,
+    accepted: paymentRequirements,
+    payload: {
+      signature: payment.signature,
+      authorization: {
+        from: payment.payer,
+        to: payment.recipient,
+        value: payment.amount.toString(),
+        validAfter: '0',
+        validBefore: String(payment.validBefore),
+        nonce: payment.nonce,
+      },
+    },
+  };
+
+  try {
+    // Step 1 — verify with the facilitator
+    const verifyBody = JSON.stringify({ x402Version: 2, paymentPayload, paymentRequirements });
+    logger.info({ verifyBody: verifyBody.substring(0, 500) }, 'Facilitator /verify request body');
+    const verifyRes = await fetch(`${baseUrl}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: verifyBody,
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!verifyRes.ok) {
+      const body = await verifyRes.text().catch(() => '');
+      logger.warn({ status: verifyRes.status, body }, 'Facilitator /verify rejected');
+      return { settled: false, error: `Facilitator verify failed: ${verifyRes.status}` };
+    }
+
+    const verifyData = (await verifyRes.json()) as { isValid?: boolean };
+    if (!verifyData.isValid) {
+      return { settled: false, error: 'Facilitator reported signature invalid' };
+    }
+
+    // Step 2 — settle on-chain
+    const settleRes = await fetch(`${baseUrl}/settle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x402Version: 2, paymentPayload, paymentRequirements }),
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    if (!settleRes.ok) {
+      const body = await settleRes.text().catch(() => '');
+      logger.warn({ status: settleRes.status, body }, 'Facilitator /settle failed');
+      return { settled: false, error: `Facilitator settle failed: ${settleRes.status}` };
+    }
+
+    const settleData = (await settleRes.json()) as {
+      success?: boolean;
+      transaction?: string;
+      txHash?: string;
+      network?: string;
+    };
+    const txHash = settleData.transaction || settleData.txHash;
+    if (settleData.success && txHash) {
+      logger.info({ txHash }, 'Payment settled on-chain');
+      return { settled: true, txHash };
+    }
+
+    return { settled: false, error: 'Facilitator settle returned no txHash' };
+  } catch (err) {
+    // Network error / timeout — facilitator unavailable
+    logger.warn({ err }, 'Facilitator unreachable — falling back to local verification only');
+    return { settled: false, error: 'Facilitator unreachable' };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,20 +199,31 @@ export function withX402Payment(
     logger.info(
       {
         payer: payment.payer,
-        amount: payment.amountUSDC.toString(),
+        amount: payment.amount.toString(),
         nonce: payment.nonce,
       },
-      'Payment verified — executing handler',
+      'Payment verified locally — attempting on-chain settlement',
     );
 
-    // Record the earning for survival tracking (A3 fix)
+    // Attempt on-chain settlement via x402 facilitator
+    const settle = await settleViaFacilitator(payment, paymentProof);
+
+    if (!settle.settled && settle.error && !settle.error.includes('unreachable')) {
+      // Facilitator explicitly rejected — return 402 with reason
+      logger.warn({ error: settle.error }, 'Settlement rejected by facilitator');
+      return paymentRequiredResponse(`Settlement failed: ${settle.error}`);
+    }
+
+    const txHash = settle.txHash ?? payment.nonce;
+
+    // Record the earning for survival tracking
     // Lazy import to avoid circular dependency at module load time
     try {
       const { EarningsTracker } = await import('@/survival/earnings-tracker');
       EarningsTracker.getInstance().recordEarning({
-        txHash: payment.nonce,
+        txHash,
         payer: payment.payer,
-        amountUSDC: payment.amountUSDC,
+        amountUSDC: payment.amount,
         service: 'full-scan',
         timestamp: new Date().toISOString(),
       });
@@ -120,7 +237,10 @@ export function withX402Payment(
 
     // Attach payer metadata to the response for transparency
     response.headers.set('X-402-Payer', payment.payer);
-    response.headers.set('X-402-Paid', payment.amountUSDC.toString());
+    response.headers.set('X-402-Paid', payment.amount.toString());
+    if (settle.txHash) {
+      response.headers.set('X-402-TxHash', settle.txHash);
+    }
 
     return response;
   };

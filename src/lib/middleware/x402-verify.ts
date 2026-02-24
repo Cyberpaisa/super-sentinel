@@ -25,7 +25,8 @@ const logger = createLogger('x402-verify');
 export interface VerifiedPayment {
   payer: string;
   recipient: string;
-  amountUSDC: bigint;
+  /** Payment amount in the smallest unit (wei for AVAX) */
+  amount: bigint;
   nonce: string;
   signature: string;
   validBefore: number;
@@ -56,14 +57,15 @@ interface X402PaymentProof {
 // EIP-712 domain & types for USDC EIP-3009 TransferWithAuthorization
 // ---------------------------------------------------------------------------
 
-const USDC_EIP712_DOMAIN = {
+/** Exported so the CLI script can use the same domain & types for signing. */
+export const USDC_EIP712_DOMAIN = {
   name: 'USD Coin',
   version: '2',
   chainId: 43114,
   verifyingContract: X402_CONFIG.asset as `0x${string}`,
 } as const;
 
-const TRANSFER_WITH_AUTHORIZATION_TYPES = {
+export const TRANSFER_WITH_AUTHORIZATION_TYPES = {
   TransferWithAuthorization: [
     { name: 'from', type: 'address' },
     { name: 'to', type: 'address' },
@@ -212,7 +214,7 @@ export async function verifyX402Payment(
   const verified: VerifiedPayment = {
     payer: authorization.from,
     recipient: authorization.to,
-    amountUSDC: paymentAmount,
+    amount: paymentAmount,
     nonce: authorization.nonce,
     signature,
     validBefore: authorization.validBefore,
@@ -221,7 +223,7 @@ export async function verifyX402Payment(
   logger.info(
     {
       payer: verified.payer,
-      amount: verified.amountUSDC.toString(),
+      amount: verified.amount.toString(),
       nonce: verified.nonce,
     },
     'Payment verified successfully',

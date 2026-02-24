@@ -13,14 +13,16 @@
  */
 
 export const X402_CONFIG = {
-  /** Price per request in USDC (6-decimal format: 500000 = $0.50) */
-  price: '500000',
+  /** Price per request in USDC (6-decimal format: 10000 = $0.01) */
+  price: '10000',
   /** Token symbol */
   currency: 'USDC',
   /** Formatted price for display */
-  priceFormatted: '$0.50',
+  priceFormatted: '$0.01',
   /** USDC contract address on Avalanche C-Chain */
   asset: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  /** Number of decimals for the payment asset */
+  decimals: 6,
   /** CAIP-2 chain identifier – Avalanche C-Chain mainnet */
   network: 'eip155:43114',
   /** Address that receives the payment */
@@ -29,4 +31,8 @@ export const X402_CONFIG = {
     '0x0000000000000000000000000000000000000000',
   /** Kill-switch: the middleware is a no-op when disabled */
   enabled: process.env.X402_PAYMENT_ENABLED === 'true',
+  /** x402 facilitator URL for on-chain settlement via EIP-3009 */
+  facilitatorUrl:
+    process.env.FACILITATOR_URL ||
+    'https://facilitator.ultravioletadao.xyz',
 } as const;

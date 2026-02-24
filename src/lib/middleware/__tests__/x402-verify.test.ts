@@ -9,7 +9,7 @@ vi.mock('viem', () => ({
 const VALID_AUTHORIZATION = {
   from: '0x1234567890abcdef1234567890abcdef12345678',
   to: process.env.X402_RECIPIENT_ADDRESS || '0x0000000000000000000000000000000000000000',
-  value: '500000', // $0.50 USDC
+  value: '10000', // $0.01 USDC
   validAfter: 0,
   validBefore: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
   nonce: '0x0000000000000000000000000000000000000000000000000000000000000001',
@@ -95,7 +95,7 @@ describe('x402 Payment Verification', () => {
         signature: '0xdeadbeef',
         authorization: {
           ...VALID_AUTHORIZATION,
-          value: '100', // way below $0.50
+          value: '100', // way below 0.01 AVAX
         },
       },
     };
@@ -143,7 +143,7 @@ describe('x402 Payment Verification', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.payment.payer).toBe(VALID_AUTHORIZATION.from);
-      expect(result.payment.amountUSDC).toBe(BigInt(VALID_AUTHORIZATION.value));
+      expect(result.payment.amount).toBe(BigInt(VALID_AUTHORIZATION.value));
       expect(result.payment.recipient).toBe(VALID_AUTHORIZATION.to);
     }
   });

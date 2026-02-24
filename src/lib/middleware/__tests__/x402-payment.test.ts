@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Mock x402-verify before importing the module
@@ -8,7 +8,7 @@ vi.mock('../x402-verify', () => ({
     payment: {
       payer: '0x1234567890abcdef1234567890abcdef12345678',
       recipient: '0x0000000000000000000000000000000000000000',
-      amountUSDC: 500000n,
+      amount: 10000n,
       nonce: '0xtest-nonce',
       signature: '0xtest-sig',
       validBefore: 9999999999,
@@ -26,10 +26,29 @@ vi.mock('@/survival/earnings-tracker', () => ({
 }));
 
 describe('withX402Payment middleware', () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     // Reset the env to enable payments
     process.env.X402_PAYMENT_ENABLED = 'true';
+
+    // Mock fetch for facilitator verify + settle calls
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ isValid: true }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, txHash: '0xMockTxHash' }),
+        text: async () => '',
+      });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it('should return 402 when no payment header is provided', async () => {
@@ -98,6 +117,19 @@ describe('withX402Payment middleware', () => {
   });
 
   it('should record earning on successful payment', async () => {
+    // Re-mock fetch for this test (beforeEach mocks are consumed by prior calls)
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ isValid: true }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, txHash: '0xMockTxHash' }),
+        text: async () => '',
+      });
+
     const { EarningsTracker } = await import('@/survival/earnings-tracker');
     const mockRecordEarning = vi.fn();
     (EarningsTracker.getInstance as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -123,7 +155,7 @@ describe('withX402Payment middleware', () => {
     expect(mockRecordEarning).toHaveBeenCalledWith(
       expect.objectContaining({
         payer: '0x1234567890abcdef1234567890abcdef12345678',
-        amountUSDC: 500000n,
+        amountUSDC: 10000n,
         service: 'full-scan',
       }),
     );
