@@ -102,11 +102,14 @@ export function handleError(error: unknown): NextResponse<ApiErrorResponse> {
     return errorResponse(error);
   }
 
-  // Log and capture unexpected errors
-  console.error('Unexpected error:', error);
+  // Capture unexpected errors in Sentry (never log raw error to console in production)
   Sentry.captureException(error);
 
-  // Return generic internal error for unknown errors
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Unexpected error:', error);
+  }
+
+  // Return generic internal error — never expose internal details to client
   return errorResponse(new InternalError());
 }
 

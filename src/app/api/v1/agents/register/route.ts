@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
 
-    logger.info({ body }, 'Received agent registration request');
+    logger.info({ address: body.address, name: body.name, type: body.type }, 'Received agent registration request');
 
     const validatedData = registerAgentSchema.parse(body);
 
