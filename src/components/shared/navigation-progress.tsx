@@ -7,7 +7,7 @@ function ProgressBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const barRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const progressRef = useRef(0);
   const activeRef = useRef(false);
 
@@ -104,7 +104,7 @@ import { Suspense } from 'react';
 
 export function NavigationProgress() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <ProgressBar />
     </Suspense>
   );

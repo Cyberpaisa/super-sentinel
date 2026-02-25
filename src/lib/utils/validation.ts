@@ -75,6 +75,8 @@ export const createRatingSchema = z.object({
     .optional(),
   signature: z.string().min(1, 'Signature is required'),
   userAddress: addressSchema,
+  nonce: z.string().min(1, 'Nonce is required'),
+  timestamp: z.number().int('Timestamp must be an integer'),
 });
 
 /**
@@ -110,6 +112,8 @@ export const createReportSchema = z.object({
     .trim(),
   signature: z.string().min(1, 'Signature is required'),
   userAddress: addressSchema,
+  nonce: z.string().min(1, 'Nonce is required'),
+  timestamp: z.number().int('Timestamp must be an integer'),
 });
 
 // ============================================

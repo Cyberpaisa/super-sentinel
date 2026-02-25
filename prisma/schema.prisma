@@ -355,6 +355,24 @@ model Visitor {
 }
 
 // ============================================
+// AUTH NONCES (Replay Attack Prevention)
+// ============================================
+
+/// Used nonces for wallet signature verification
+model AuthNonce {
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  address   String
+  action    String
+  usedAt    DateTime @default(now()) @map("used_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([nonce])
+  @@index([expiresAt])
+  @@map("auth_nonces")
+}
+
+// ============================================
 // CENTINELA VERIFICATION
 // ============================================
 
