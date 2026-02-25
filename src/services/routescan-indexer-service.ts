@@ -13,6 +13,37 @@ import { prisma } from '@/lib/database/prisma';
 
 const logger = createLogger('routescan-indexer');
 
+function isUrlSafe(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname.toLowerCase();
+
+    // Block internal/private networks
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '::1' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('172.16.') ||
+      hostname.startsWith('172.17.') ||
+      hostname.startsWith('172.18.') ||
+      hostname.startsWith('172.19.') ||
+      hostname.startsWith('172.2') ||
+      hostname.startsWith('172.3') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal') ||
+      url.protocol !== 'https:' && url.protocol !== 'http:'
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Registry address on mainnet
 const REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432' as Address;
 const ROUTESCAN_API = 'https://api.routescan.io/v2/network/mainnet/evm/43114/erc721-transfers';
@@ -277,6 +308,9 @@ async function resolveAgentInfo(
 
   // HTTP URIs - try fetch
   if (tokenURI.startsWith('http')) {
+    if (!isUrlSafe(tokenURI)) {
+      return { name: defaultName, description: defaultDesc };
+    }
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);

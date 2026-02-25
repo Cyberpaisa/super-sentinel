@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (process.env.NODE_ENV === 'production' && cronSecret) {
-      if (authHeader !== `Bearer ${cronSecret}`) {
+    if (process.env.NODE_ENV === 'production') {
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         logger.warn('Unauthorized cron job access attempt');
         return new Response('Unauthorized', { status: 401 });
       }

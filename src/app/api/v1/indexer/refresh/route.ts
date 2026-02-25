@@ -22,6 +22,15 @@ const logger = createLogger('api-indexer-refresh');
  */
 export async function POST(_request: NextRequest) {
   try {
+    const authHeader = _request.headers.get('authorization');
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+      return new Response(JSON.stringify({ data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     logger.info('Starting manual indexer refresh via Routescan');
 
     const startTime = Date.now();

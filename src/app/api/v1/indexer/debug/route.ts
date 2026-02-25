@@ -23,6 +23,15 @@ const REGISTRY_ADDRESSES = {
  */
 export async function GET(_request: NextRequest) {
   try {
+    const authHeader = _request.headers.get('authorization');
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+      return new Response(JSON.stringify({ data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const registryAddress = isMainnet()
       ? REGISTRY_ADDRESSES.mainnet.identity
       : REGISTRY_ADDRESSES.testnet.identity;

@@ -7,6 +7,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') ?? '3650', 10);
+    if (isNaN(days) || days < 1 || days > 3650) {
+      return NextResponse.json(
+        { data: null, error: { message: 'Invalid days parameter. Must be between 1 and 3650.', code: 'VALIDATION_ERROR' } },
+        { status: 400 }
+      );
+    }
 
     // Raw query to get daily registration and verification counts
     // When days is very large (e.g. 3650 for "ALL"), we skip the date filter

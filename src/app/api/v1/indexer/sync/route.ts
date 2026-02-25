@@ -18,6 +18,15 @@ const logger = createLogger('api-indexer-sync');
  */
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization');
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+      return new Response(JSON.stringify({ data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const { searchParams } = new URL(request.url);
     const network = searchParams.get('network') as Network | null;
     const limitParam = searchParams.get('limit');

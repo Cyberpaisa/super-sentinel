@@ -1,4 +1,4 @@
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, fallback } from 'viem';
 import { avalanche, avalancheFuji } from './config';
 
 /**
@@ -35,12 +35,31 @@ const getRpcUrl = () => {
  */
 export const publicClient = createPublicClient({
   chain: ACTIVE_CHAIN,
-  transport: http(getRpcUrl(), {
-    batch: true,
-    retryCount: 3,
-    retryDelay: 1000,
-    timeout: 10_000,
-  }),
+  transport: CHAIN_ENV === 'mainnet'
+    ? fallback([
+        http(getRpcUrl(), {
+          batch: true,
+          retryCount: 3,
+          retryDelay: 1000,
+          timeout: 10_000,
+        }),
+        http('https://avalanche-c-chain-rpc.publicnode.com', {
+          batch: true,
+          retryCount: 2,
+          timeout: 10_000,
+        }),
+        http('https://rpc.ankr.com/avalanche', {
+          batch: true,
+          retryCount: 2,
+          timeout: 10_000,
+        }),
+      ])
+    : http(getRpcUrl(), {
+        batch: true,
+        retryCount: 3,
+        retryDelay: 1000,
+        timeout: 10_000,
+      }),
 });
 
 /**
