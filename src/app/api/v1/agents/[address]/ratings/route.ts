@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server';
 import { successResponse, paginatedResponse, handleError } from '@/lib/utils/api-helpers';
-import { NotFoundError, ValidationError } from '@/lib/utils/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '@/lib/utils/errors';
 import { verifyWalletSignature } from '@/lib/utils/auth';
 import { addressSchema, createRatingSchema, getRatingsQuerySchema } from '@/lib/utils/validation';
 import { createLogger } from '@/lib/utils/logger';
 import { prisma } from '@/lib/database/prisma';
+import { publicClient } from '@/lib/blockchain/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,16 @@ export async function POST(
 
     // Verify wallet signature with nonce + timestamp (anti-replay)
     const verifiedAddress = await verifyWalletSignature(userAddress, signature, nonce, timestamp, 'rate');
+
+    // Sybil protection: verify the wallet has on-chain activity (at least 1 transaction)
+    const txCount = await publicClient.getTransactionCount({
+      address: verifiedAddress as `0x${string}`,
+    });
+    if (txCount === 0) {
+      throw new ForbiddenError(
+        'Your wallet must have at least one on-chain transaction to submit a rating. This prevents Sybil attacks.'
+      );
+    }
 
     // Check agent exists
     const agent = await prisma.agent.findUnique({

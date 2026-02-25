@@ -157,57 +157,148 @@ const OZ_COMPONENTS: OZComponent[] = [
 ];
 
 /**
- * Check if bytecode contains a specific function selector
+ * Extract function selectors from bytecode by parsing the EVM dispatcher.
+ * The dispatcher uses PUSH4 (0x63) + 4-byte selector + EQ (0x14) + PUSH/JUMPI patterns.
+ * This is far more accurate than substring matching.
+ *
+ * @param bytecode - Contract bytecode hex string
+ * @returns Set of 4-byte selectors found in the dispatcher
+ */
+function extractDispatcherSelectors(bytecode: string): Set<string> {
+  const hex = bytecode.toLowerCase().replace('0x', '');
+  const selectors = new Set<string>();
+  const bytes = hex.length / 2;
+
+  let i = 0;
+  while (i < bytes) {
+    const opcode = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+
+    // Look for PUSH4 (0x63) — this pushes a 4-byte function selector
+    if (opcode === 0x63 && i + 5 < bytes) {
+      const selector = hex.substring((i + 1) * 2, (i + 5) * 2);
+
+      // Verify this is part of a dispatcher: next instruction after the 4 bytes
+      // should be EQ (0x14) within a few instructions (allowing for DUP, PUSH, etc.)
+      const lookAhead = Math.min(i + 10, bytes);
+      let foundEq = false;
+      let j = i + 5;
+      while (j < lookAhead) {
+        const nextOp = parseInt(hex.substring(j * 2, j * 2 + 2), 16);
+        if (nextOp === 0x14) { // EQ
+          foundEq = true;
+          break;
+        }
+        // Skip PUSH data
+        if (nextOp >= 0x60 && nextOp <= 0x7f) {
+          j += 1 + (nextOp - 0x5f);
+        } else {
+          j += 1;
+        }
+      }
+
+      if (foundEq) {
+        selectors.add(selector);
+      }
+
+      i += 5; // Skip past the 4 selector bytes
+    } else if (opcode >= 0x60 && opcode <= 0x7f) {
+      // Skip PUSH data bytes
+      i += 1 + (opcode - 0x5f);
+    } else {
+      i += 1;
+    }
+  }
+
+  return selectors;
+}
+
+/** Cache for parsed dispatcher selectors per bytecode */
+let cachedBytecodeHash = '';
+let cachedSelectors = new Set<string>();
+
+/**
+ * Check if bytecode contains a specific function selector in its dispatcher.
+ * Uses EVM opcode parsing instead of naive substring matching.
  *
  * @param bytecode - Contract bytecode
  * @param selector - 4-byte function selector (without 0x)
- * @returns true if selector found in bytecode
+ * @returns true if selector found in bytecode dispatcher
  */
 function containsSelector(bytecode: string, selector: string): boolean {
-  // Function selectors appear in the bytecode dispatcher
-  // They are typically compared using PUSH4 opcode (0x63) followed by the selector
-  const normalizedBytecode = bytecode.toLowerCase().replace('0x', '');
-  const normalizedSelector = selector.toLowerCase();
+  // Cache the parsed selectors for the same bytecode (avoids re-parsing for each check)
+  const bytecodeKey = bytecode.slice(0, 64); // Use prefix as cache key
+  if (bytecodeKey !== cachedBytecodeHash) {
+    cachedBytecodeHash = bytecodeKey;
+    cachedSelectors = extractDispatcherSelectors(bytecode);
+  }
 
-  // Check for the selector in the bytecode
-  // Selectors can appear as part of PUSH4 instructions or in data sections
-  return normalizedBytecode.includes(normalizedSelector);
+  return cachedSelectors.has(selector.toLowerCase());
 }
 
 /**
- * Check if bytecode contains a specific event topic
+ * Check if bytecode contains a specific event topic.
+ * Event topics are pushed as 32-byte values using PUSH32 (0x7f).
  *
  * @param bytecode - Contract bytecode
  * @param topic - 32-byte event topic (without 0x)
- * @returns true if topic found in bytecode
+ * @returns true if topic found as PUSH32 operand in bytecode
  */
 function containsEventTopic(bytecode: string, topic: string): boolean {
-  const normalizedBytecode = bytecode.toLowerCase().replace('0x', '');
+  const hex = bytecode.toLowerCase().replace('0x', '');
   const normalizedTopic = topic.toLowerCase();
+  const bytes = hex.length / 2;
 
-  // Event topics are often pushed as 32-byte values
-  return normalizedBytecode.includes(normalizedTopic);
+  let i = 0;
+  while (i < bytes) {
+    const opcode = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+
+    // PUSH32 (0x7f) — next 32 bytes are the operand
+    if (opcode === 0x7f && i + 33 <= bytes) {
+      const operand = hex.substring((i + 1) * 2, (i + 33) * 2);
+      if (operand === normalizedTopic) {
+        return true;
+      }
+      i += 33;
+    } else if (opcode >= 0x60 && opcode <= 0x7f) {
+      i += 1 + (opcode - 0x5f);
+    } else {
+      i += 1;
+    }
+  }
+
+  return false;
 }
 
 /**
- * Check for ReentrancyGuard patterns in bytecode
+ * Check for ReentrancyGuard patterns in bytecode by parsing EVM opcodes.
+ * Looks for actual SLOAD (0x54) and SSTORE (0x55) opcodes in instruction positions,
+ * not as arbitrary byte values in data.
  *
  * @param bytecode - Contract bytecode
  * @returns true if reentrancy guard pattern detected
  */
 function hasReentrancyGuardPattern(bytecode: string): boolean {
-  const normalizedBytecode = bytecode.toLowerCase().replace('0x', '');
+  const hex = bytecode.toLowerCase().replace('0x', '');
+  const bytes = hex.length / 2;
 
-  // ReentrancyGuard uses a status variable that is checked and modified
-  // Common pattern: SLOAD, check value, SSTORE with new value
-  // Look for patterns that indicate this behavior
+  let sloadCount = 0;
+  let sstoreCount = 0;
 
-  // Check for multiple SLOAD/SSTORE pairs which is typical for reentrancy guards
-  const sloadCount = (normalizedBytecode.match(/54/g) || []).length;
-  const sstoreCount = (normalizedBytecode.match(/55/g) || []).length;
+  let i = 0;
+  while (i < bytes) {
+    const opcode = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
 
-  // ReentrancyGuard typically has paired SLOAD/SSTORE operations
-  // This is a heuristic and may have false positives
+    if (opcode === 0x54) sloadCount++;  // SLOAD
+    if (opcode === 0x55) sstoreCount++; // SSTORE
+
+    // Skip PUSH data
+    if (opcode >= 0x60 && opcode <= 0x7f) {
+      i += 1 + (opcode - 0x5f);
+    } else {
+      i += 1;
+    }
+  }
+
   return sloadCount >= 2 && sstoreCount >= 2;
 }
 

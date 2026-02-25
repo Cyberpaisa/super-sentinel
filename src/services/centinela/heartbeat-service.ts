@@ -49,9 +49,25 @@ export interface UptimeResult {
   period: UptimePeriod;
 }
 
+/** ERC-165 supportsInterface selector */
+const SUPPORTS_INTERFACE_SELECTOR = '0x01ffc9a7';
+
+/** ERC-8004 interface ID */
+const ERC8004_INTERFACE_ID = '0x80040000';
+
+/** Common heartbeat/ping function selectors */
+const HEARTBEAT_SELECTORS = [
+  '0x3defb962', // heartbeat()
+  '0x5c36b186', // ping()
+  '0x54fd4d50', // getVersion()
+] as const;
+
 /**
- * Execute a heartbeat ping to an agent
- * Since agents are smart contracts, we verify they are still deployed and responsive
+ * Execute a heartbeat ping to an agent with multi-level verification:
+ * 1. Verify contract code exists
+ * 2. Call supportsInterface(ERC-8004) if available
+ * 3. Try calling heartbeat/ping/getVersion functions
+ * All within the HEARTBEAT_TIMEOUT_MS window
  *
  * @param address - Agent contract address
  * @returns Heartbeat ping result
@@ -60,53 +76,23 @@ async function executeHeartbeatPing(address: Address): Promise<HeartbeatPingResu
   const startTime = Date.now();
 
   try {
-    // Create an AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Heartbeat timeout')), HEARTBEAT_TIMEOUT_MS);
+    });
 
-    try {
-      // Perform a simple contract existence check as heartbeat
-      // This verifies the contract is still accessible on-chain
-      const code = await Promise.race([
-        publicClient.getCode({ address }),
-        new Promise<never>((_, reject) => {
-          controller.signal.addEventListener('abort', () => {
-            reject(new Error('Heartbeat timeout'));
-          });
-        }),
-      ]);
+    const result = await Promise.race([
+      executeHeartbeatChecks(address, startTime),
+      timeoutPromise,
+    ]);
 
-      clearTimeout(timeoutId);
-
-      const responseTimeMs = Date.now() - startTime;
-
-      // Check if contract still has code
-      if (!code || code === '0x') {
-        return {
-          success: false,
-          responseTimeMs,
-          result: 'FAIL',
-          errorMessage: 'Contract no longer exists at address',
-        };
-      }
-
-      return {
-        success: true,
-        responseTimeMs,
-        result: 'PASS',
-      };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
+    return result;
   } catch (error) {
     const responseTimeMs = Date.now() - startTime;
 
-    // Check if it's a timeout
     if (error instanceof Error && error.message === 'Heartbeat timeout') {
       return {
         success: false,
-        responseTimeMs: null, // null for timeout
+        responseTimeMs: null,
         result: 'TIMEOUT',
         errorMessage: `Heartbeat timed out after ${HEARTBEAT_TIMEOUT_MS}ms`,
       };
@@ -119,6 +105,84 @@ async function executeHeartbeatPing(address: Address): Promise<HeartbeatPingResu
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+/**
+ * Run multi-level heartbeat checks
+ */
+async function executeHeartbeatChecks(
+  address: Address,
+  startTime: number
+): Promise<HeartbeatPingResult> {
+  // Level 1: Verify contract code exists
+  const code = await publicClient.getCode({ address });
+  if (!code || code === '0x') {
+    return {
+      success: false,
+      responseTimeMs: Date.now() - startTime,
+      result: 'FAIL',
+      errorMessage: 'Contract no longer exists at address',
+    };
+  }
+
+  // Level 2: Try supportsInterface(ERC-8004)
+  let supportsErc8004 = false;
+  try {
+    const result = await publicClient.call({
+      to: address,
+      data: encodeFunctionCall(SUPPORTS_INTERFACE_SELECTOR, ERC8004_INTERFACE_ID),
+    });
+    // If call succeeds and returns true (non-zero last byte)
+    if (result.data && result.data.length >= 66) {
+      supportsErc8004 = result.data.endsWith('1'.padStart(64, '0'));
+    }
+  } catch {
+    // Contract may not implement ERC-165, that's OK
+    logger.debug({ address }, 'supportsInterface call failed (may not implement ERC-165)');
+  }
+
+  // Level 3: Try calling heartbeat/ping/getVersion functions
+  let respondedToCall = false;
+  for (const selector of HEARTBEAT_SELECTORS) {
+    try {
+      const result = await publicClient.call({
+        to: address,
+        data: selector as `0x${string}`,
+      });
+      if (result.data && result.data !== '0x') {
+        respondedToCall = true;
+        break;
+      }
+    } catch {
+      // Function may not exist, try next
+    }
+  }
+
+  const responseTimeMs = Date.now() - startTime;
+
+  // A contract passes if:
+  // - It has code (always required) AND
+  // - It either supports ERC-8004 OR responds to a known function call
+  // - If neither, it still passes but with a note (backward compatibility)
+  const hasAdvancedVerification = supportsErc8004 || respondedToCall;
+
+  return {
+    success: true,
+    responseTimeMs,
+    result: 'PASS',
+    errorMessage: hasAdvancedVerification
+      ? undefined
+      : 'Contract exists but does not implement ERC-8004 or respond to known functions',
+  };
+}
+
+/**
+ * Encode a supportsInterface call
+ */
+function encodeFunctionCall(selector: string, interfaceId: string): `0x${string}` {
+  // supportsInterface(bytes4) — pad interfaceId to 32 bytes
+  const paddedId = interfaceId.replace('0x', '').padEnd(64, '0');
+  return `${selector}${paddedId}` as `0x${string}`;
 }
 
 /**

@@ -71,24 +71,42 @@ function extractAddressFromSlot(slotValue: Hex): Address | null {
 }
 
 /**
- * Check for delegatecall patterns in bytecode
- * This is a heuristic check for identifying potential proxy contracts
+ * Check for delegatecall patterns in bytecode by parsing EVM opcodes.
+ * Instead of naive substring matching (which gives false positives),
+ * we walk the bytecode instruction-by-instruction and look for the
+ * actual DELEGATECALL opcode (0xF4) in an opcode position.
  *
  * @param bytecode - Contract bytecode as hex string
- * @returns true if delegatecall pattern found
+ * @returns true if a real DELEGATECALL opcode is found
  */
 function hasDelegatecallPattern(bytecode: string): boolean {
   if (!bytecode || bytecode === '0x') {
     return false;
   }
 
-  // DELEGATECALL opcode is 0xF4
-  // Common patterns include the opcode appearing in the bytecode
-  const normalizedBytecode = bytecode.toLowerCase();
+  const hex = bytecode.toLowerCase().replace('0x', '');
+  const bytes = hex.length / 2;
 
-  // Check for DELEGATECALL opcode
-  // Note: This is a simple heuristic and may have false positives/negatives
-  return normalizedBytecode.includes('f4');
+  // Walk bytecode as EVM instructions
+  let i = 0;
+  while (i < bytes) {
+    const opcode = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+
+    // 0xF4 = DELEGATECALL opcode
+    if (opcode === 0xf4) {
+      return true;
+    }
+
+    // PUSH1 (0x60) through PUSH32 (0x7f) — skip the immediate data bytes
+    if (opcode >= 0x60 && opcode <= 0x7f) {
+      const pushSize = opcode - 0x5f; // PUSH1=1 byte, PUSH2=2 bytes, ...
+      i += 1 + pushSize;
+    } else {
+      i += 1;
+    }
+  }
+
+  return false;
 }
 
 /**
