@@ -193,9 +193,10 @@ async function calculateUptimeScore(agentAddress: string): Promise<ScoreComponen
 
     const passed = heartbeats.filter((h) => h.result === 'PASS').length;
     const successRate = (passed / heartbeats.length) * 100;
-    const avgResponseTime = heartbeats
-      .filter((h) => h.responseTimeMs !== null)
-      .reduce((sum, h) => sum + (h.responseTimeMs || 0), 0) / (passed || 1);
+    const logsWithResponseTime = heartbeats.filter((h) => h.responseTimeMs !== null);
+    const avgResponseTime = logsWithResponseTime.length > 0
+      ? logsWithResponseTime.reduce((sum, h) => sum + (h.responseTimeMs || 0), 0) / logsWithResponseTime.length
+      : 0;
 
     // Find the appropriate score based on success rate
     let score = 0;

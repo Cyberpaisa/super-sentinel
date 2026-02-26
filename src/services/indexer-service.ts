@@ -16,7 +16,7 @@ const REGISTRY_ADDRESSES = {
 
 const REPUTATION_REGISTRY = {
   mainnet: '0x8004B663056A597Dffe9eCcC1965A193B7388713' as Address,
-  testnet: '0x8004B663056A597Dffe9eCcC1965A193B7388713' as Address, // TODO: Add testnet address when deployed
+  testnet: '0x8004B663056A597Dffe9eCcC1965A193B7388713' as Address, // Uses mainnet address as fallback — update when testnet contract is deployed
 };
 
 // ── Dedicated RPC clients (independent of app's CHAIN_ENV) ─────────

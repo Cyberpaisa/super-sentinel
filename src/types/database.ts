@@ -1,9 +1,9 @@
 /**
  * Supabase Database Types
- * Auto-generated types will be placed here after running:
- * npx supabase gen types typescript --project-id <project-id> > src/types/database.ts
  *
- * For now, this is a placeholder with the expected schema structure.
+ * These types mirror the actual Prisma schema and are used for Supabase client
+ * type-safety. To regenerate from a live project, run:
+ * npx supabase gen types typescript --project-id <project-id> > src/types/database.ts
  */
 
 export type Json =
