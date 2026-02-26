@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, handleError } from '@/lib/utils/api-helpers';
 import { prisma } from '@/lib/database/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -8,10 +9,10 @@ export const dynamic = 'force-dynamic';
  *
  * Returns the last 10 trust score snapshots per agent for sparkline rendering.
  * Response shape:
- *   { data: { [address]: Array<{ v: number }> }, error: null }
+ *   { data: { [address]: Array<{ v: number }> } }
  *
  * Where `v` is the trust score 0-100 ordered oldest → newest.
- * Agents with no snapshot history are omitted from the response (caller falls back to mock).
+ * Agents with no snapshot history are omitted from the response.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     )].slice(0, 50);
 
     if (addresses.length === 0) {
-      return NextResponse.json({ data: {}, error: null });
+      return successResponse({});
     }
 
     // Fetch all trust_score snapshots for these agents (ordered ASC = left→right on chart)
@@ -44,12 +45,8 @@ export async function GET(request: NextRequest) {
       if (data[addr].length > 10) data[addr] = data[addr].slice(-10);
     }
 
-    return NextResponse.json({ data, error: null });
-  } catch (err) {
-    console.error('[sparklines]', err);
-    return NextResponse.json(
-      { data: null, error: { message: 'Failed to fetch sparklines', code: 'INTERNAL' } },
-      { status: 500 },
-    );
+    return successResponse(data);
+  } catch (error) {
+    return handleError(error);
   }
 }

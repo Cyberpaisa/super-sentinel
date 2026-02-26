@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
+import { UnauthorizedError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
 import { publicClient, isMainnet } from '@/lib/blockchain/client';
 import { type Address } from 'viem';
@@ -19,17 +20,18 @@ const REGISTRY_ADDRESSES = {
 
 /**
  * GET /api/v1/indexer/debug
- * Debug endpoint to check event reading
+ * Debug endpoint to check event reading.
+ * Protected — requires `Authorization: Bearer <INDEXER_API_SECRET>`.
  */
 export async function GET(_request: NextRequest) {
   try {
-    const authHeader = _request.headers.get('authorization');
-    const adminSecret = process.env.ADMIN_SECRET;
-    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
-      return new Response(JSON.stringify({ data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    const secret = process.env.INDEXER_API_SECRET;
+    if (!secret) {
+      throw new UnauthorizedError('Endpoint not configured');
+    }
+    if (_request.headers.get('authorization') !== `Bearer ${secret}`) {
+      logger.warn('Unauthorized debug endpoint access');
+      throw new UnauthorizedError('Invalid or missing authorization');
     }
 
     const registryAddress = isMainnet()

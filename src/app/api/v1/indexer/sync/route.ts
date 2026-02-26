@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
+import { UnauthorizedError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
 import { syncAgents, syncNetwork, type Network } from '@/services/indexer-service';
 
@@ -8,24 +9,25 @@ export const maxDuration = 300; // Up to 5 min for full scan of both networks
 
 const logger = createLogger('api-indexer-sync');
 
+function verifyIndexerAuth(request: NextRequest) {
+  const secret = process.env.INDEXER_API_SECRET;
+  if (!secret) {
+    throw new UnauthorizedError('Endpoint not configured');
+  }
+  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+    throw new UnauthorizedError('Invalid or missing authorization');
+  }
+}
+
 /**
  * POST /api/v1/indexer/sync
  *
  * Trigger agent synchronization from Identity Registry on-chain.
- * Query params:
- *   - network: 'mainnet' | 'testnet' (default: both)
- *   - limit: number of agents to index per network (default: 0 = all)
+ * Protected — requires `Authorization: Bearer <INDEXER_API_SECRET>`.
  */
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    const adminSecret = process.env.ADMIN_SECRET;
-    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
-      return new Response(JSON.stringify({ data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    verifyIndexerAuth(request);
 
     const { searchParams } = new URL(request.url);
     const network = searchParams.get('network') as Network | null;

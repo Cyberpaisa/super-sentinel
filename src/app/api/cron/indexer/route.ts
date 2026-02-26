@@ -21,15 +21,17 @@ const logger = createLogger('cron-indexer');
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret in production
+    // Verify cron secret — always required regardless of environment
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (process.env.NODE_ENV === 'production') {
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        logger.warn('Unauthorized cron job access attempt');
-        return new Response('Unauthorized', { status: 401 });
-      }
+    if (!cronSecret) {
+      logger.error('CRON_SECRET is not configured');
+      return new Response('Cron endpoint not configured', { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      logger.warn('Unauthorized cron job access attempt');
+      return new Response('Unauthorized', { status: 401 });
     }
 
     logger.info('Starting scheduled indexer + score refresh job');

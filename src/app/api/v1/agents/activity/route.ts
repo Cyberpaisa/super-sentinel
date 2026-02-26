@@ -1,21 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { successResponse, handleError } from '@/lib/utils/api-helpers';
+import { ValidationError } from '@/lib/utils/errors';
 import { prisma } from '@/lib/database/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const querySchema = z.object({
+  days: z.coerce.number().int().min(1).max(3650).optional().default(3650),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') ?? '3650', 10);
-    if (isNaN(days) || days < 1 || days > 3650) {
-      return NextResponse.json(
-        { data: null, error: { message: 'Invalid days parameter. Must be between 1 and 3650.', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      );
+    const parsed = querySchema.safeParse({
+      days: searchParams.get('days') ?? undefined,
+    });
+
+    if (!parsed.success) {
+      const fields: Record<string, string> = {};
+      parsed.error.errors.forEach((err) => {
+        fields[err.path.join('.')] = err.message;
+      });
+      throw new ValidationError('Invalid query parameters', fields);
     }
 
+    const { days } = parsed.data;
+
     // Raw query to get daily registration and verification counts
-    // When days is very large (e.g. 3650 for "ALL"), we skip the date filter
     const rows = await prisma.$queryRaw<
       Array<{ date: Date; registrations: bigint; verifications: bigint }>
     >`
@@ -35,12 +47,8 @@ export async function GET(request: NextRequest) {
       verifications: Number(r.verifications),
     }));
 
-    return NextResponse.json({ data, error: null });
-  } catch (err) {
-    console.error('[activity]', err);
-    return NextResponse.json(
-      { data: null, error: { message: 'Failed to fetch activity', code: 'INTERNAL' } },
-      { status: 500 },
-    );
+    return successResponse(data);
+  } catch (error) {
+    return handleError(error);
   }
 }

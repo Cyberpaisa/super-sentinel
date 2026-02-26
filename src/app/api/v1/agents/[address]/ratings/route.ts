@@ -7,6 +7,18 @@ import { createLogger } from '@/lib/utils/logger';
 import { prisma } from '@/lib/database/prisma';
 import { publicClient } from '@/lib/blockchain/client';
 
+/**
+ * Minimum time between rating changes for the same wallet (1 hour).
+ * Prevents rapid bulk-rating from sybil wallets.
+ */
+const RATING_COOLDOWN_MS = 60 * 60 * 1000;
+
+/**
+ * Maximum number of agents a single wallet can rate per 24h period.
+ * Limits sybil impact even with many wallets.
+ */
+const MAX_RATINGS_PER_DAY = 20;
+
 export const dynamic = 'force-dynamic';
 
 const logger = createLogger('api-ratings');
@@ -68,6 +80,40 @@ export async function POST(
     });
     if (!agent) {
       throw new NotFoundError(`Agent not found: ${address}`);
+    }
+
+    // Anti-sybil: check if this wallet has hit the daily rating limit
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentRatingCount = await prisma.rating.count({
+      where: {
+        userAddress: verifiedAddress,
+        updatedAt: { gte: oneDayAgo },
+      },
+    });
+    if (recentRatingCount >= MAX_RATINGS_PER_DAY) {
+      throw new ValidationError('Rating limit exceeded', {
+        userAddress: `Maximum ${MAX_RATINGS_PER_DAY} ratings per 24 hours`,
+      });
+    }
+
+    // Anti-sybil: check cooldown for this specific agent+wallet pair
+    const existingRating = await prisma.rating.findUnique({
+      where: {
+        agentId_userAddress: {
+          agentId: normalizedAddress,
+          userAddress: verifiedAddress,
+        },
+      },
+      select: { updatedAt: true },
+    });
+    if (existingRating) {
+      const timeSinceLastRating = Date.now() - existingRating.updatedAt.getTime();
+      if (timeSinceLastRating < RATING_COOLDOWN_MS) {
+        const minutesLeft = Math.ceil((RATING_COOLDOWN_MS - timeSinceLastRating) / 60000);
+        throw new ValidationError('Rating cooldown active', {
+          userAddress: `Please wait ${minutesLeft} minutes before updating your rating`,
+        });
+      }
     }
 
     logger.info(
