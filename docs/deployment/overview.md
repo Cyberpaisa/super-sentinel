@@ -2,53 +2,57 @@
 
 ## Infrastructure
 
+```mermaid
+graph LR
+    subgraph Hosting
+        Vercel[Vercel<br/>Next.js + API + Cron]
+    end
+
+    subgraph Database
+        Supabase[Supabase<br/>PostgreSQL + Auth]
+    end
+
+    subgraph Blockchain
+        Avalanche[Avalanche C-Chain<br/>RPC + Contracts]
+    end
+
+    subgraph Monitoring
+        Sentry[Sentry<br/>Error Tracking]
+        Analytics[Vercel Analytics<br/>+ Speed Insights]
+    end
+
+    Vercel <--> Supabase
+    Vercel <--> Avalanche
+    Vercel -.-> Sentry
+    Vercel -.-> Analytics
+```
+
 | Service | Purpose | Environment |
 |---------|---------|-------------|
-| **Vercel** | Frontend + API hosting | Production |
-| **Supabase** | Database + Auth + Edge Functions | Production |
-| **GitHub Actions** | CI/CD | Automation |
-| **Sentry** | Error tracking | Monitoring |
-
-## Environment Variables
-
-### Frontend (Vercel)
-
-```bash
-# Public (accessible in browser)
-NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-NEXT_PUBLIC_AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=abc123
-NEXT_PUBLIC_CHAIN_ENV=mainnet
-
-# Server-only
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-DATABASE_URL=postgresql://...
-SENTRY_DSN=https://...@sentry.io/...
-```
-
-### Supabase Edge Functions
-
-```bash
-# Set via Supabase CLI
-supabase secrets set AVALANCHE_RPC_URL=https://...
-supabase secrets set DATABASE_URL=postgresql://...
-```
-
-## Vercel Configuration
-
-```json
-// vercel.json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "framework": "nextjs",
-  "regions": ["iad1"],
-  "crons": []
-}
-```
+| **Vercel** | Frontend + API hosting + Cron Jobs | Production |
+| **Supabase** | PostgreSQL database via Prisma ORM | Production |
+| **Sentry** | Error tracking (client + server + edge) | Monitoring |
+| **Vercel Analytics** | Page views + Speed Insights | Monitoring |
 
 ## CI/CD Pipeline
+
+```mermaid
+flowchart TD
+    Push[git push to main] --> CI
+
+    subgraph CI["GitHub Actions"]
+        Lint[npm run lint<br/>npm run type-check]
+        Test[npm run test:coverage]
+        Build[npm run build<br/>prisma generate + next build]
+        Lint --> Test --> Build
+    end
+
+    CI -->|All pass| Vercel[Vercel Auto-Deploy]
+    Vercel --> Prod([Production])
+
+    PR[Pull Request] --> Preview[Vercel Preview Deploy]
+    PR --> CI
+```
 
 ### GitHub Actions Workflow
 
@@ -58,7 +62,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -100,29 +104,47 @@ jobs:
       - run: npm run build
 ```
 
-### Deploy Workflow
+## Environment Variables
 
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
+### Public (safe for browser)
 
-on:
-  push:
-    branches: [main]
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=abc123
+NEXT_PUBLIC_CHAIN_ENV=mainnet
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
+```
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+### Server-only (set in Vercel dashboard)
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+```bash
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+DATABASE_URL=postgresql://...?pgbouncer=true
+DIRECT_URL=postgresql://...
+AVALANCHE_RPC_FALLBACK_URL=https://rpc.ankr.com/avalanche
+CRON_SECRET=<openssl rand -hex 32>
+INDEXER_API_SECRET=<openssl rand -hex 32>
+SENTRY_DSN=https://...@sentry.io/...
+NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/...
+SENTRY_ORG=your-org
+SENTRY_PROJECT=super-sentinel
+SENTRY_AUTH_TOKEN=sntrys_...
+```
+
+## Vercel Configuration
+
+```json
+// vercel.json
+{
+  "crons": [
+    {
+      "path": "/api/cron/indexer",
+      "schedule": "0 */3 * * *"
+    }
+  ]
+}
 ```
 
 ## Database Migrations
@@ -138,62 +160,26 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-## Supabase Edge Functions Deployment
+## Health Checks
 
-```bash
-# Login to Supabase
-supabase login
-
-# Link project
-supabase link --project-ref <project-id>
-
-# Deploy all functions
-supabase functions deploy
-
-# Deploy specific function
-supabase functions deploy indexer
-supabase functions deploy centinela
-
-# Set secrets
-supabase secrets set KEY=value
-```
-
-## Monitoring & Alerts
-
-### Sentry Setup
-
-```typescript
-// sentry.client.config.ts
-import * as Sentry from '@sentry/nextjs';
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-});
-```
-
-### Health Checks
-
-- `/api/v1/health` - API health
-- Vercel deployment status
-- Supabase dashboard metrics
-- Sentry error dashboard
+- `GET /api/v1/health` — API + DB + RPC health
+- Vercel deployment status dashboard
+- Sentry error dashboard and alerts
 
 ## Rollback Procedure
 
-1. **Vercel**: Go to Deployments → Select previous deployment → Promote to Production
-2. **Database**: `npx prisma migrate resolve --rolled-back <migration-name>`
-3. **Edge Functions**: Redeploy previous version from git
+1. **App rollback**: Vercel Dashboard → Deployments → Promote previous deployment
+2. **DB rollback**: `npx prisma migrate resolve --rolled-back <migration-name>`
+3. **Config rollback**: Fix environment variables in Vercel → Redeploy
 
 ## Security Checklist
 
-- [ ] Environment variables set correctly
-- [ ] CORS configured properly
-- [ ] Rate limiting enabled
-- [ ] No secrets in client-side code
-- [ ] RLS policies enabled on Supabase tables
-- [ ] API key rotation schedule
+- [ ] Environment variables set correctly (no secrets in `NEXT_PUBLIC_*`)
+- [ ] Rate limiting enabled (100/min default, 5/hour registration)
+- [ ] Security headers active (nosniff, DENY, XSS protection)
+- [ ] No secrets in client-side code or git history
+- [ ] `CRON_SECRET` and `INDEXER_API_SECRET` are strong random values
+- [ ] Sentry configured and receiving errors
 - [ ] Error messages don't leak sensitive info
+
+> See [production-setup.md](production-setup.md) for detailed step-by-step guide.
