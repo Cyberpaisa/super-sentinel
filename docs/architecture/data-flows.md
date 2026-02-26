@@ -2,89 +2,164 @@
 
 ## Flow 1: Agent Registration
 
-```
-User → Connects Wallet → Frontend captures address
-      ↓
-Frontend → sends agent_address → API /register
-      ↓
-API → verifies contract exists on Avalanche (via RPC)
-      ↓
-API → extracts ERC-804 metadata from contract
-      ↓
-API → inserts in Supabase (agents table, status: pending)
-      ↓
-API → triggers Centinela for initial verification
-      ↓
-Centinela → analyzes proxy, calculates initial trust score
-      ↓
-API → updates record (status: verified)
-      ↓
-Frontend ← returns agent_id and redirect to /agent/{address}
-```
+```mermaid
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as API /register
+    participant RPC as Avalanche RPC
+    participant DB as PostgreSQL (Prisma)
 
-## Flow 2: Trust Score Update
-
-```
-Cron Job (every 1 hour) → triggers recalculation
-      ↓
-Backend → reads from Supabase:
-          • Transaction volume (from Indexer)
-          • Heartbeat logs
-          • Proxy detection result
-          • OZ match score
-          • User ratings
-      ↓
-Backend → applies weighted formula:
-          trust_score = (volume * 0.25) + (proxy_ok * 0.20) +
-                        (uptime * 0.25) + (oz_score * 0.15) +
-                        (ratings * 0.15)
-      ↓
-Backend → updates agents.trust_score in Supabase
-      ↓
-Frontend (real-time via Supabase Realtime) → reflects new score
+    User->>Frontend: Connect wallet
+    Frontend->>Frontend: Capture wallet address
+    User->>Frontend: Fill form (address, name, type)
+    Frontend->>API: POST /api/v1/agents/register
+    API->>API: Validate with Zod schema
+    API->>RPC: verifyContractExists(address)
+    alt Contract not found
+        RPC-->>API: No bytecode
+        API-->>Frontend: 502 ContractNotFoundError
+    end
+    RPC-->>API: Contract exists
+    API->>RPC: readAgentMetadata() (name, type, billing)
+    RPC-->>API: ERC-804 metadata
+    API->>DB: prisma.agent.create(status: PENDING)
+    DB-->>API: Agent created
+    API-->>Frontend: 201 { agent }
+    Frontend->>Frontend: Redirect to /agents/{address}
 ```
 
-## Flow 3: Agent Query (API)
+## Flow 2: Indexer Discovery (Cron)
 
+```mermaid
+sequenceDiagram
+    participant Cron as Vercel Cron (every 3h)
+    participant API as /api/cron/indexer
+    participant Routescan as Routescan API
+    participant DB as PostgreSQL (Prisma)
+    participant Trust as Trust Score Service
+
+    Cron->>API: GET /api/cron/indexer
+    API->>API: Verify CRON_SECRET
+    API->>Routescan: Fetch Transfer events (paginated, 50/page)
+    loop Each page (max 20)
+        Routescan-->>API: Transfer events
+        API->>API: Filter mint events (from = 0x0)
+        API->>API: deriveAgentAddress(registry + tokenId)
+        loop Each new agent
+            API->>Routescan: Fetch tokenURI metadata
+            Routescan-->>API: Agent metadata (JSON)
+            API->>DB: Upsert agent (status: VERIFIED)
+        end
+    end
+    API->>Trust: recalculateAllScores()
+    loop Each agent
+        Trust->>DB: Read volume, heartbeats, ratings, proxy
+        Trust->>Trust: Apply weighted formula
+        Trust->>DB: Upsert TrustScore snapshot
+        Trust->>DB: Update agent.trust_score
+    end
+    API-->>Cron: { indexed, skipped, failed, duration }
 ```
-External Agent → GET /api/v1/agents/{address}/trust-score
-      ↓
-API → checks rate limit (Redis or Supabase)
-      ↓
-API → queries Supabase agents table
-      ↓
-API ← returns JSON with trust_score + breakdown
-      ↓
-External Agent → makes decision based on score
+
+## Flow 3: Trust Score Calculation
+
+```mermaid
+flowchart TD
+    Start([Calculate Trust Score]) --> Parallel
+
+    subgraph Parallel["Parallel Data Collection"]
+        V[Query TransactionVolume<br/>24h period]
+        P[Read agent.is_proxy<br/>agent.proxy_type]
+        U[Query HeartbeatLogs<br/>last 24h]
+        O[Read TrustScore snapshot<br/>ozMatch data]
+        R[Query Ratings<br/>avg score]
+    end
+
+    Parallel --> VCalc[Volume Score<br/>1000+ AVAX → 100<br/>500+ → 80 | 100+ → 60<br/>10+ → 40 | else → 20]
+    Parallel --> PCalc[Proxy Score<br/>No proxy → 100<br/>Declared → 80<br/>Hidden → 0]
+    Parallel --> UCalc[Uptime Score<br/>99%+ → 100 | 95%+ → 90<br/>90%+ → 70 | 80%+ → 50<br/>else → 25]
+    Parallel --> OCalc[OZ Match Score<br/>80%+ → 100 | 50%+ → 70<br/>20%+ → 40 | else → 20]
+    Parallel --> RCalc[Ratings Score<br/>avg_rating / 5 × 100<br/>No ratings → 50]
+
+    VCalc --> Formula["Trust Score =<br/>(Volume × 0.25) +<br/>(Proxy × 0.20) +<br/>(Uptime × 0.25) +<br/>(OZ Match × 0.15) +<br/>(Ratings × 0.15)"]
+
+    PCalc --> Formula
+    UCalc --> Formula
+    OCalc --> Formula
+    RCalc --> Formula
+
+    Formula --> Save[Save TrustScore snapshot<br/>+ Update agent.trust_score]
 ```
 
-## Trust Score Formula
+## Flow 4: Agent Query (API)
 
-```typescript
-const WEIGHTS = {
-  VOLUME: 0.25,    // 25% - Transaction volume activity
-  PROXY: 0.20,    // 20% - No hidden proxy detected
-  UPTIME: 0.25,    // 25% - Heartbeat response rate
-  OZ_MATCH: 0.15,  // 15% - OpenZeppelin bytecode similarity
-  RATINGS: 0.15    // 15% - Community ratings average
-};
+```mermaid
+sequenceDiagram
+    actor Client as External Client
+    participant MW as Middleware
+    participant API as /api/v1/agents/:address
+    participant DB as PostgreSQL (Prisma)
 
-function calculateTrustScore(agent: Agent): number {
-  return (
-    agent.volumeScore * WEIGHTS.VOLUME +
-    agent.proxyScore * WEIGHTS.PROXY +
-    agent.uptimeScore * WEIGHTS.UPTIME +
-    agent.ozMatchScore * WEIGHTS.OZ_MATCH +
-    agent.ratingsScore * WEIGHTS.RATINGS
-  );
-}
+    Client->>MW: GET /api/v1/agents/{address}/trust-score
+    MW->>MW: Check rate limit (100/min per IP)
+    alt Rate limited
+        MW-->>Client: 429 + Retry-After header
+    end
+    MW->>MW: Add security headers
+    MW->>API: Forward request
+    API->>API: Validate address (Zod)
+    API->>DB: Find agent by address
+    alt Agent not found
+        DB-->>API: null
+        API-->>Client: 404 NotFoundError
+    end
+    DB-->>API: Agent record
+    API->>DB: Get latest TrustScore (< 1h old?)
+    alt Cached score available
+        DB-->>API: TrustScore snapshot
+    else No cache
+        API->>API: calculateTrustScore() (fresh)
+    end
+    API-->>Client: 200 { score, breakdown, lastUpdated }
+```
+
+## Flow 5: Rating Submission
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant Wallet as Wallet (MetaMask)
+    participant API as /api/v1/agents/:address/ratings
+    participant Auth as Auth Utils (viem)
+    participant DB as PostgreSQL
+
+    User->>Frontend: Select stars (1-5) + comment
+    Frontend->>Wallet: signMessage(nonce + timestamp)
+    Wallet-->>Frontend: signature (0x...)
+    Frontend->>API: POST { score, comment, signature, userAddress }
+    API->>API: Validate with Zod
+    API->>Auth: verifyWalletSignature(signature)
+    Auth->>Auth: Check timestamp (< 5 min)
+    Auth->>Auth: Recover address from signature
+    alt Invalid signature or expired
+        Auth-->>API: Error
+        API-->>Frontend: 401 UnauthorizedError
+    end
+    API->>DB: Check daily limit (20/day per wallet)
+    API->>DB: Check cooldown (1h between updates)
+    API->>DB: Upsert rating (agent + user unique)
+    DB-->>API: Rating created/updated
+    API-->>Frontend: 201 { rating }
+    Frontend->>Frontend: Invalidate queries, show toast
 ```
 
 ## Trust Score Ranges
 
 | Range | Label | Color | Description |
 |-------|-------|-------|-------------|
-| 90-100 | Excellent | Green | Highly trusted, all signals positive |
-| 70-89 | Good | Blue | Generally trusted, minor concerns |
-| 50-69 | Medium | Yellow | Use with caution, some flags |
-| 0-49 | Low | Red | Not recommended, significant issues |
+| 80-100 | Excellent | Green | Highly trusted, all signals positive |
+| 60-79 | Good | Blue | Generally trusted, minor concerns |
+| 40-59 | Medium | Yellow | Use with caution, some flags |
+| 0-39 | Low | Red | Not recommended, significant issues |

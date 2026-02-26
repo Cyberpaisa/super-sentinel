@@ -2,63 +2,84 @@
 
 ## High-Level Diagram
 
+```mermaid
+graph TB
+    subgraph Frontend["Frontend (Next.js 14 App Router)"]
+        Landing[Landing Page]
+        Scanner[Scanner / Directory]
+        Profile[Agent Profile]
+        Register[Register Agent]
+        Docs[Documentation]
+    end
+
+    subgraph API["API Layer (Next.js API Routes)"]
+        AgentsAPI["/agents<br/>(list, detail, register)"]
+        TrustAPI["/trust-score<br/>/trust-history"]
+        RatingsAPI["/ratings<br/>/reports"]
+        IndexerAPI["/indexer<br/>(refresh, sync, debug)"]
+        HealthAPI["/health<br/>/visitors"]
+    end
+
+    subgraph Services["Services Layer"]
+        AgentSvc[Agent Service<br/>CRUD + Filtering]
+        TrustSvc[Trust Score Service<br/>Weighted Formula]
+
+        subgraph Centinela["Centinela Engine"]
+            Heartbeat[Heartbeat Service<br/>Contract Pings]
+            ProxyDet[Proxy Detector<br/>EIP-1967 Analysis]
+            OZMatch[OZ Matcher<br/>Bytecode Comparison]
+        end
+
+        IndexerSvc[Indexer Service<br/>Agent Discovery]
+        BlockchainSvc[Blockchain Service<br/>RPC Interactions]
+    end
+
+    subgraph Data["Data Layer"]
+        Prisma[(PostgreSQL<br/>via Prisma ORM<br/>hosted on Supabase)]
+    end
+
+    subgraph Blockchain["Avalanche C-Chain"]
+        Registry[ERC-8004<br/>Identity Registry]
+        Agents[Agent Smart Contracts<br/>ERC-804 Compliant]
+    end
+
+    subgraph External["External Services"]
+        Routescan[Routescan API<br/>Block Explorer]
+        Sentry[Sentry<br/>Error Tracking]
+        Vercel[Vercel<br/>Hosting + Cron]
+    end
+
+    Frontend -->|TanStack Query| API
+    API --> Services
+    Services --> Prisma
+    Services -->|viem| Blockchain
+    IndexerSvc -->|Paginated Fetch| Routescan
+    Vercel -->|Cron every 3h| IndexerAPI
+    API -.->|Errors| Sentry
+
+    classDef frontend fill:#1e293b,stroke:#4ADE80,color:#e5e7eb
+    classDef api fill:#1e293b,stroke:#22d3ee,color:#e5e7eb
+    classDef service fill:#1e293b,stroke:#fcd34d,color:#e5e7eb
+    classDef data fill:#1e293b,stroke:#a78bfa,color:#e5e7eb
+    classDef blockchain fill:#1e293b,stroke:#fb7185,color:#e5e7eb
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         FRONTEND                             │
-│  Next.js 14 App Router + TypeScript + TailwindCSS           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Landing    │  │   Scanner    │  │Agent Profile │      │
-│  │    Page      │  │  (Directory) │  │    Detail    │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│           │                │                  │              │
-│           └────────────────┴──────────────────┘              │
-│                            │                                 │
-└────────────────────────────┼─────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      API LAYER                               │
-│         Next.js API Routes (Backend for Frontend)            │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │  /agents   │  │ /register  │  │/trust-score│            │
-│  │   (list)   │  │  (create)  │  │  (detail)  │            │
-│  └────────────┘  └────────────┘  └────────────┘            │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    DATABASE (Supabase)                       │
-│                      PostgreSQL                              │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │   agents   │  │ heartbeats │  │   ratings  │            │
-│  │   table    │  │    logs    │  │   table    │            │
-│  └────────────┘  └────────────┘  └────────────┘            │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             │
-┌────────────────────────────┴────────────────────────────────┐
-│                  BACKGROUND SERVICES                         │
-│  ┌─────────────────────┐  ┌─────────────────────┐          │
-│  │    Indexer Job      │  │   Centinela Engine  │          │
-│  │  (every 15 min)     │  │   (verification)    │          │
-│  │                     │  │                     │          │
-│  │ • Scan blockchain   │  │ • Proxy detection   │          │
-│  │ • Update tx volume  │  │ • Heartbeat checks  │          │
-│  │ • New agents        │  │ • OZ comparison     │          │
-│  └─────────────────────┘  └─────────────────────┘          │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│              AVALANCHE C-CHAIN (Blockchain)                  │
-│                    ChainID: 43114                            │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │  Agent 1   │  │  Agent 2   │  │  Agent N   │            │
-│  │ (ERC-804)  │  │ (ERC-804)  │  │ (ERC-804)  │            │
-│  └────────────┘  └────────────┘  └────────────┘            │
-│                                                              │
-│  [Read-only: bytecode, metadata, transaction history]       │
-└─────────────────────────────────────────────────────────────┘
+
+## Request Lifecycle
+
+```mermaid
+flowchart LR
+    Client([Client Request]) --> MW[Middleware]
+    MW --> RL{Rate Limit<br/>Check}
+    RL -->|Exceeded| R429[429 Too Many Requests]
+    RL -->|OK| SEC[Add Security Headers]
+    SEC --> AUTH{Supabase Session<br/>Refresh}
+    AUTH --> Route[API Route Handler]
+    Route --> Val{Zod<br/>Validation}
+    Val -->|Invalid| R400[400 ValidationError]
+    Val -->|Valid| Svc[Service Layer]
+    Svc --> DB[(Database)]
+    DB --> Res[Format Response]
+    Res --> Client
 ```
 
 ## System Components
@@ -66,62 +87,49 @@
 ### Frontend (Next.js App)
 
 **Responsibilities**:
-- Render UI (landing, scanner, agent profile)
+- Render UI (landing, scanner, agent profile, docs)
 - Connect wallet (wagmi + viem)
-- Consume own REST API
-- State management (TanStack Query)
+- Consume REST API via TanStack Query
 - Client-side validation (Zod)
 
 **Does NOT**:
 - Direct blockchain queries (delegates to API)
-- Direct Supabase queries (only via API)
+- Direct database queries (only via API)
 - Business logic (trust score, proxy detection)
 
 ### Backend (Next.js API Routes)
 
 **Responsibilities**:
-- Expose REST endpoints
+- Expose REST endpoints (20 routes)
 - Validate requests (Zod schemas)
-- Authenticate wallets (verify signatures)
-- Supabase queries
-- Avalanche RPC queries (via viem)
-- Rate limiting
-- Logging (pino)
-
-**Does NOT**:
-- Render HTML (JSON API only)
-- Background jobs (uses Supabase Edge Functions or external cron)
+- Authenticate wallets (verify signatures with viem)
+- Database queries via Prisma ORM
+- Avalanche RPC queries (via viem with fallback transport)
+- Rate limiting (100/min default, 5/hour registration)
+- Structured logging (Pino)
 
 ### Indexer (Background Job)
 
 **Responsibilities**:
-- Scan Avalanche C-Chain every 15 minutes
-- Track transactions from agent billing addresses
-- Calculate volume in AVAX and USD
-- Detect new ERC-804 contracts (auto-discovery)
-- Update transaction_volume table in Supabase
-
-**Technology**: Supabase Edge Function + cron trigger
+- Run every 3 hours via Vercel Cron
+- Scan ERC-8004 Identity Registry for new agents via Routescan API
+- Resolve agent metadata from tokenURI (data URIs, HTTP, base64)
+- Generate deterministic pseudo-addresses from registry + tokenId
+- Recalculate trust scores for all agents after indexing
 
 ### Centinela (Verification Engine)
 
 **Responsibilities**:
-- Detect proxies (bytecode analysis)
-- Heartbeat system (ping agents every hour)
-- Compare bytecode with OpenZeppelin templates
-- Calculate OZ match score
-- Log results in heartbeat_logs and agents tables
+- **Heartbeat**: Ping agent contracts to verify uptime (checks bytecode + name() call)
+- **Proxy Detection**: Analyze EIP-1967 storage slots + delegatecall bytecode patterns
+- **OZ Matcher**: Compare bytecode against OpenZeppelin function selectors and event topics
 
-**Technology**: Supabase Edge Function or separate Node.js script
-
-### Database (Supabase)
+### Database (Supabase PostgreSQL + Prisma)
 
 **Responsibilities**:
-- Persist agents, logs, ratings, reports
-- Real-time subscriptions (for live updates)
-- Auth (if using Supabase Auth for owners)
-- Storage (if uploading images/docs in future)
-
-**Does NOT**:
-- Business logic (this goes in API)
-- Complex queries (done from API with ORM)
+- Persist agents, trust scores, ratings, reports, heartbeat logs
+- Transaction volume tracking by period
+- User and watchlist management
+- API key storage and validation
+- Daily platform metrics
+- Visitor tracking
