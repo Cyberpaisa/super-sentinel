@@ -76,11 +76,11 @@ flowchart TD
         R[Query Ratings<br/>avg score]
     end
 
-    Parallel --> VCalc[Volume Score<br/>1000+ AVAX → 100<br/>500+ → 80 | 100+ → 60<br/>10+ → 40 | else → 20]
-    Parallel --> PCalc[Proxy Score<br/>No proxy → 100<br/>Declared → 80<br/>Hidden → 0]
-    Parallel --> UCalc[Uptime Score<br/>99%+ → 100 | 95%+ → 90<br/>90%+ → 70 | 80%+ → 50<br/>else → 25]
-    Parallel --> OCalc[OZ Match Score<br/>80%+ → 100 | 50%+ → 70<br/>20%+ → 40 | else → 20]
-    Parallel --> RCalc[Ratings Score<br/>avg_rating / 5 × 100<br/>No ratings → 50]
+    Parallel --> VCalc["Volume Score<br/>1000+ AVAX → 100<br/>500+ → 80, 100+ → 60<br/>10+ → 40, else → 20"]
+    Parallel --> PCalc["Proxy Score<br/>No proxy → 100<br/>Declared → 80<br/>Hidden → 0"]
+    Parallel --> UCalc["Uptime Score<br/>99%+ → 100, 95%+ → 90<br/>90%+ → 70, 80%+ → 50<br/>else → 25"]
+    Parallel --> OCalc["OZ Match Score<br/>80%+ → 100, 50%+ → 70<br/>20%+ → 40, else → 20"]
+    Parallel --> RCalc["Ratings Score<br/>avg_rating / 5 × 100<br/>No ratings → 50"]
 
     VCalc --> Formula["Trust Score =<br/>(Volume × 0.25) +<br/>(Proxy × 0.20) +<br/>(Uptime × 0.25) +<br/>(OZ Match × 0.15) +<br/>(Ratings × 0.15)"]
 

@@ -13,7 +13,7 @@ flowchart TD
     Fetch --> Render[Render agent table/grid]
 
     Render --> Filter{User applies<br/>filter?}
-    Filter -->|Service chips| Refetch[Refetch with<br/>service=MCP|A2A|web|OASF]
+    Filter -->|Service chips| Refetch["Refetch with<br/>service: MCP, A2A, web, OASF"]
     Filter -->|Status| Refetch
     Filter -->|Trust range| Refetch
     Filter -->|Sort| Refetch
@@ -36,39 +36,34 @@ flowchart TD
 ## Page Layout
 
 ```mermaid
-block-beta
-    columns 3
-
-    block:header:3
-        Logo["Logo + Nav"]
-        Search["Global Search"]
-        Wallet["Wallet Connect"]
+graph TD
+    subgraph Header["Header"]
+        Logo["Logo + Nav"] ~~~ Search["Global Search"] ~~~ Wallet["Wallet Connect"]
     end
 
-    block:kpi:3
-        K1["Total Agents"]
-        K2["Verified %"]
-        K3["Active 24h"]
-        K4["Avg Trust Score"]
+    subgraph KPIs["Stats Cards"]
+        K1["Total Agents"] ~~~ K2["Verified %"] ~~~ K3["Active 24h"] ~~~ K4["Avg Trust Score"]
     end
 
-    block:chart:2
-        ActivityChart["Activity Chart<br/>(Registrations + Verifications)<br/>Timeframes: 1W | 1M | 3M | ALL"]
+    subgraph MainArea["Main Content"]
+        subgraph Left["Sidebar"]
+            Filters["Filters<br/>Services, Status,<br/>Sort, Trust Range"]
+        end
+
+        subgraph Right["Content"]
+            SearchBar["Search Bar + View Toggle"]
+            AgentTable["Agent Table / Grid<br/>Rank, Name, Type, Score,<br/>Status, Trend, Share"]
+            Pagination["Pagination"]
+        end
+
+        subgraph Charts["Activity + Sidebar"]
+            ActivityChart["Activity Chart<br/>1W, 1M, 3M, ALL"]
+            TopAgents["Top Agents"]
+        end
     end
 
-    block:sidebar:1
-        TopAgents["Top Agents"]
-        RecentActivity["Recent Activity"]
-    end
-
-    block:filters:1
-        F["Filters<br/>────────<br/>Services: MCP A2A Web OASF<br/>Status: All/Verified/...<br/>Sort By: Score/Date/Name<br/>Trust Range: 0━━━100<br/>Reset"]
-    end
-
-    block:table:2
-        SearchBar["Search Bar + View Toggle"]
-        AgentTable["Agent Table / Grid<br/>────────────────────<br/># | Name | Type | Score | Status | Trend<br/>──────────────────────────────<br/>Pagination: 1 2 3 ..."]
-    end
+    Header --> KPIs --> MainArea
+    SearchBar --> AgentTable --> Pagination
 ```
 
 ## Features
