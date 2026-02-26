@@ -159,6 +159,13 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Security headers
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
   // Add rate limit headers to response
   if (remaining) {
     response.headers.set('X-RateLimit-Remaining', remaining);
@@ -184,7 +191,12 @@ export async function middleware(request: NextRequest) {
               headers: request.headers,
             },
           });
-          // Re-add rate limit headers after recreating response
+          // Re-add security + rate limit headers after recreating response
+          response.headers.set('X-Content-Type-Options', 'nosniff');
+          response.headers.set('X-Frame-Options', 'DENY');
+          response.headers.set('X-XSS-Protection', '1; mode=block');
+          response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+          response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
           if (remaining) {
             response.headers.set('X-RateLimit-Remaining', remaining);
           }
