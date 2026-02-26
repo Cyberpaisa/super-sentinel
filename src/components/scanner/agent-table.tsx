@@ -75,25 +75,25 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function mockSparkData(address: string, score: number) {
-  const seed = address.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return Array.from({ length: 8 }, (_, i) => {
-    const v = ((seed * (i + 1) * 7919) % 21) - 10;
-    return { v: Math.max(0, Math.min(100, score + v)) };
-  });
-}
-
-function MiniSparkline({ address, score, realData }: {
-  address: string;
+function MiniSparkline({ score, realData }: {
   score: number;
   realData?: { v: number }[];
 }) {
-  const data = (realData && realData.length >= 2) ? realData : mockSparkData(address, score);
+  const hasData = realData && realData.length >= 2;
   const color = getTrustScoreLineColor(score);
+
+  if (!hasData) {
+    return (
+      <div className="h-8 w-16 flex items-center justify-center">
+        <div className="w-10 h-[1px] bg-[rgba(255,255,255,0.1)]" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-8 w-16">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <LineChart data={realData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
           <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
@@ -279,7 +279,6 @@ export function AgentTable({ agents, sparklines = {}, onSortChange }: AgentTable
     ),
     cell: ({ row }) => (
       <MiniSparkline
-        address={row.original.address}
         score={row.original.trust_score}
         realData={sparklines[row.original.address]}
       />

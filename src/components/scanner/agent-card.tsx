@@ -24,13 +24,6 @@ function getStatusConfig(status: string) {
   return map[status] ?? { icon: Shield, text: 'text-[#64748B]', bg: 'bg-[rgba(255,255,255,0.05)]' };
 }
 
-function mockSparkData(address: string, score: number) {
-  const seed = address.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return Array.from({ length: 10 }, (_, i) => {
-    const v = ((seed * (i + 1) * 7919) % 21) - 10;
-    return { v: Math.max(0, Math.min(100, score + v)) };
-  });
-}
 
 function monogram(name: string) {
   return name.slice(0, 2).toUpperCase();
@@ -46,7 +39,7 @@ export function AgentCard({ agent, sparklines = {} }: AgentCardProps) {
   const status = getStatusConfig(agent.status);
   const StatusIcon = status.icon;
   const realData = sparklines[agent.address];
-  const sparkData = (realData && realData.length >= 2) ? realData : mockSparkData(agent.address, agent.trust_score);
+  const hasSparkData = realData && realData.length >= 2;
 
   return (
     <Link
@@ -109,18 +102,24 @@ export function AgentCard({ agent, sparklines = {} }: AgentCardProps) {
 
       {/* Sparkline */}
       <div className="h-10 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={sparkData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-            <Line
-              type="monotone"
-              dataKey="v"
-              stroke={colors.line}
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {hasSparkData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={realData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+              <Line
+                type="monotone"
+                dataKey="v"
+                stroke={colors.line}
+                strokeWidth={1.5}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <div className="w-3/4 h-[1px] bg-[rgba(255,255,255,0.1)]" />
+          </div>
+        )}
       </div>
 
       {/* Bottom: status + type */}
