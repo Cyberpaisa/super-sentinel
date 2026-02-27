@@ -65,7 +65,7 @@ async function fetchOnChainRatings(
         }) as [bigint, number, string, string, boolean];
 
         const score = Number(fb[0]);
-        if (score >= 10) {
+        if (score >= 50) {
           ratings.push({ reviewer, value: Math.min(score, 100), tag: fb[2] || undefined });
         }
       } catch {

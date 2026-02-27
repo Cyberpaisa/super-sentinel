@@ -26,9 +26,8 @@ export interface RatingsData {
  *
  * Score calculation:
  *  - 0 ratings         -> score = 0, passed = false
- *  - 1-2 ratings       -> base 30 + avg normalized to 0-30
- *  - 3-5 ratings       -> base 50 + avg normalized to 0-30
- *  - 6+ ratings        -> base 70 + avg normalized to 0-30
+ *  - 1 rating          -> base 50 + avg normalized to 0-30
+ *  - 2+ ratings        -> base 70 + avg normalized to 0-30
  *  - Capped at 100
  *
  * passed = score >= 50
@@ -50,11 +49,12 @@ export async function checkRatings(
   const averageValue = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
 
   // Determine base score from rating count
+  // Thresholds tuned for early on-chain reputation (unique reviewers are scarce)
   let base: number;
-  if (ratings.length <= 2) {
-    base = 30;
-  } else if (ratings.length <= 5) {
+  if (ratings.length === 1) {
     base = 50;
+  } else if (ratings.length <= 5) {
+    base = 70;
   } else {
     base = 70;
   }
