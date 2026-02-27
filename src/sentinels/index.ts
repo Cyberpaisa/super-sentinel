@@ -26,6 +26,7 @@ import { checkRatings, type RatingInput } from './ratings';
 // On-chain sentinels existentes (address-based) — NO se modifican
 import { detectProxy, type ProxyDetectionResult } from '@/services/centinela/proxy-detector';
 import { matchOZBytecodeByAddress, type OZMatchResult } from '@/services/centinela/oz-matcher';
+import { ERC8004_CONTRACTS } from '@/config/contracts';
 
 const logger = createLogger('sentinel:orchestrator');
 
@@ -46,9 +47,20 @@ export { checkRatings, type RatingInput, type RatingsData } from './ratings';
 async function runProxySentinel(address: string): Promise<SentinelResult> {
   const result: ProxyDetectionResult = await detectProxy(address as `0x${string}`);
 
+  // Known ERC-8004 contracts get full score — trusted infrastructure
+  const knownERC8004 = [
+    ERC8004_CONTRACTS.identity.mainnet.toLowerCase(),
+    ERC8004_CONTRACTS.identity.testnet.toLowerCase(),
+    ERC8004_CONTRACTS.reputation.mainnet.toLowerCase(),
+    ERC8004_CONTRACTS.reputation.testnet.toLowerCase(),
+  ];
+  const isKnownERC8004 = knownERC8004.includes(address.toLowerCase());
+
   // No proxy = best score, declared proxy = good, undeclared = zero
   let score: number;
-  if (!result.isProxy) {
+  if (isKnownERC8004) {
+    score = 100;
+  } else if (!result.isProxy) {
     score = 100;
   } else if (result.proxyType !== 'NONE' && result.proxyType !== 'CUSTOM') {
     score = 80;

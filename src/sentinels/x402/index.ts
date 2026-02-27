@@ -29,7 +29,7 @@ export interface X402Data {
  *  - Non-402 response                              → score = 0, fail
  *  - 402 but NO X-402 headers                      → score = 20, fail
  *  - 402 with some X-402 headers, no valid CAIP-10 → score = 70, pass
- *  - 402 with headers AND valid CAIP-10 recipient  → score = 90, pass
+ *  - 402 with headers AND valid CAIP-10 recipient  → score = 100, pass
  *  - passed = score >= 50 (consistent with other sentinels)
  *  - Error or timeout → 0
  */
@@ -83,10 +83,10 @@ export async function checkX402(
     const hasHeaders = Object.keys(headers).length > 0;
     const validRecipient = recipient ? CAIP10_REGEX.test(recipient) : false;
 
-    // Score tiers: no headers = 20 (fail), headers w/o CAIP-10 = 70, headers + CAIP-10 = 90
+    // Score tiers: no headers = 20 (fail), headers w/o CAIP-10 = 70, headers + CAIP-10 = 100
     let score: number;
     if (hasHeaders && validRecipient) {
-      score = 90;
+      score = 100;
     } else if (hasHeaders) {
       score = 70;
     } else {

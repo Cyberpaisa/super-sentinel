@@ -7,6 +7,9 @@ const DEFAULT_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
 const DEFAULT_TIMEOUT_MS = 10_000;
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
+// EIP-1967 implementation storage slot
+const EIP1967_IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+
 export interface OnChainData {
   isContract: boolean;
   codeSize: number;
@@ -86,6 +89,7 @@ export async function checkOnChain(
 
     let score: number;
     let passed: boolean;
+    let effectiveCodeSize = codeSize;
 
     if (!isContract) {
       score = 30;
@@ -94,17 +98,66 @@ export async function checkOnChain(
       score = 80;
       passed = true;
     } else {
-      score = 60;
-      passed = true;
+      // Small contract — check if it's a proxy with a larger implementation
+      try {
+        const slotResp = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_getStorageAt',
+            params: [address, EIP1967_IMPL_SLOT, 'latest'],
+            id: 2,
+          }),
+          signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+        });
+        const slotJson = (await slotResp.json()) as { result?: string };
+        const implAddr = slotJson.result
+          ? `0x${slotJson.result.slice(-40)}`
+          : null;
+        const isZero = !implAddr || implAddr === '0x0000000000000000000000000000000000000000';
+
+        if (!isZero) {
+          // Read implementation bytecode size
+          const implResp = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'eth_getCode',
+              params: [implAddr, 'latest'],
+              id: 3,
+            }),
+            signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+          });
+          const implJson = (await implResp.json()) as { result?: string };
+          const implCode = implJson.result ?? '0x';
+          const implSize = implCode === '0x' ? 0 : (implCode.length - 2) / 2;
+          if (implSize > 1000) {
+            effectiveCodeSize = implSize;
+            logger.info({ address, implAddr, implSize }, 'Proxy detected — using implementation bytecode size');
+          }
+        }
+      } catch {
+        // Non-blocking — fall through to default scoring
+      }
+
+      if (effectiveCodeSize > 1000) {
+        score = 80;
+        passed = true;
+      } else {
+        score = 60;
+        passed = true;
+      }
     }
 
-    logger.info({ address, isContract, codeSize, score, passed }, 'On-chain check completed');
+    logger.info({ address, isContract, codeSize, effectiveCodeSize, score, passed }, 'On-chain check completed');
 
     return {
       sentinel: 'on-chain',
       passed,
       score,
-      data: { isContract, codeSize, address },
+      data: { isContract, codeSize: effectiveCodeSize, address },
     };
   } catch (error) {
     clearTimeout(timeoutId);
