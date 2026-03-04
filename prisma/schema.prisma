@@ -107,6 +107,7 @@ model Agent {
   watchlistItems     WatchlistItem[]
   heartbeatLogs      HeartbeatLog[]
   transactionVolumes TransactionVolume[]
+  tracerScores       TRACERScoreRecord[]
 
   @@index([type])
   @@index([status])
@@ -433,4 +434,70 @@ model TransactionVolume {
   @@index([agentAddress])
   @@index([period])
   @@map("transaction_volumes")
+}
+
+// ============================================
+// SURVIVAL ENGINE (x402 Earnings)
+// ============================================
+
+/// x402 payment received by the agent (survival engine persistence)
+model SurvivalEarning {
+  id        String   @id @default(uuid())
+  txHash    String   @unique @map("tx_hash") // nonce/txHash as idempotency key
+  payer     String   // payer wallet address
+  amountRaw String   @map("amount_raw") // USDC 6-decimal bigint as string
+  service   String   // e.g. "full-scan"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([payer])
+  @@map("survival_earnings")
+}
+
+// ============================================
+// TRACER SCORING (v2)
+// ============================================
+
+/// TRACER tier classification
+enum TRACERTier {
+  VERIFIED
+  PASS
+  PARTIAL
+  FAIL
+}
+
+/// TRACER 6-dimension score snapshot
+model TRACERScoreRecord {
+  id           String @id @default(uuid())
+  agentAddress String @map("agent_address")
+
+  // Composite score 0-100
+  totalScore Int @map("total_score")
+
+  // TRACER dimensions 0-100
+  trust       Int @default(0)
+  reliability Int @default(0)
+  autonomy    Int @default(0)
+  capability  Int @default(0)
+  economics   Int @default(0)
+  reputation  Int @default(0)
+
+  // Tier classification
+  tier TRACERTier @default(FAIL)
+
+  // Raw sentinel results for auditability
+  sentinelResults Json? @map("sentinel_results")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agent Agent @relation(fields: [agentAddress], references: [address], onDelete: Cascade)
+
+  @@index([agentAddress])
+  @@index([totalScore(sort: Desc)])
+  @@index([tier])
+  @@index([createdAt])
+  @@map("tracer_scores")
 }

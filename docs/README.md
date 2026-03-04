@@ -59,6 +59,10 @@
 ### 🚀 Deployment
 - [Deployment Guide](./deployment/overview.md) - CI/CD, Vercel, Supabase
 
+### 💸 x402 Protocol
+- [Transaction Report](./x402/X402-TRANSACTION-REPORT.md) - First mainnet x402 payment between ERC-8004 agents
+- [Best Practices](./x402/X402-BEST-PRACTICES.md) - Integration guide, headers, facilitator format, error handling
+
 ### 📚 Reference
 - [Technical Glossary](./reference/glossary.md) - Terms and definitions
 - [Useful Commands](./reference/commands.md) - CLI commands and links

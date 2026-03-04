@@ -10,15 +10,17 @@ import { avalanche } from 'viem/chains';
 import { createAgent } from './agent-service';
 import type { CreateAgentInput } from './agent-service';
 import { prisma } from '@/lib/database/prisma';
+import { ERC8004_CONTRACTS } from '@/config/contracts';
 
 const logger = createLogger('routescan-indexer');
 
+/**
+ * SSRF protection: validate that a URL is safe to fetch
+ */
 function isUrlSafe(urlString: string): boolean {
   try {
     const url = new URL(urlString);
     const hostname = url.hostname.toLowerCase();
-
-    // Block internal/private networks
     if (
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
@@ -35,7 +37,7 @@ function isUrlSafe(urlString: string): boolean {
       hostname.startsWith('172.3') ||
       hostname.endsWith('.local') ||
       hostname.endsWith('.internal') ||
-      url.protocol !== 'https:' && url.protocol !== 'http:'
+      (url.protocol !== 'https:' && url.protocol !== 'http:')
     ) {
       return false;
     }
@@ -45,8 +47,8 @@ function isUrlSafe(urlString: string): boolean {
   }
 }
 
-// Registry address on mainnet
-const REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432' as Address;
+// Registry address on mainnet (from single source of truth)
+const REGISTRY = ERC8004_CONTRACTS.identity.mainnet;
 const ROUTESCAN_API = 'https://api.routescan.io/v2/network/mainnet/evm/43114/erc721-transfers';
 
 const ABI = [
@@ -307,11 +309,8 @@ async function resolveAgentInfo(
     }
   }
 
-  // HTTP URIs - try fetch
-  if (tokenURI.startsWith('http')) {
-    if (!isUrlSafe(tokenURI)) {
-      return { name: defaultName, description: defaultDesc };
-    }
+  // HTTP URIs - try fetch (with SSRF protection)
+  if (tokenURI.startsWith('http') && isUrlSafe(tokenURI)) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);

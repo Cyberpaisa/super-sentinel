@@ -6,10 +6,13 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/tests/setup.ts'],
+    testTimeout: 60_000,
+    hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: [
         'src/services/**/*.ts',
+        'src/sentinels/**/*.ts',
         'src/app/api/**/*.ts',
         'src/lib/utils/**/*.ts',
       ],

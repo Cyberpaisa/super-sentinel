@@ -74,21 +74,105 @@ const OZ_MATCH_THRESHOLDS = [
 ];
 
 /**
- * Calculate volume score based on 24h transaction volume
+ * Fetch recent transaction count for an address from Routescan API.
+ * Returns the number of normal transactions in the last 24 hours and
+ * a rough volume estimate in AVAX.
+ */
+async function fetchLiveVolume(
+  agentAddress: string
+): Promise<{ txCount: number; volumeAvax: number }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    // Routescan etherscan-compatible API – get last 100 normal txs
+    const url =
+      `https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api` +
+      `?module=account&action=txlist&address=${agentAddress}` +
+      `&startblock=0&endblock=99999999&sort=desc&offset=100&page=1`;
+
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return { txCount: 0, volumeAvax: 0 };
+
+    const json = (await res.json()) as {
+      result: Array<{ timeStamp: string; value: string }>;
+    };
+
+    if (!Array.isArray(json.result)) return { txCount: 0, volumeAvax: 0 };
+
+    const oneDayAgo = Math.floor(Date.now() / 1000) - 86_400;
+
+    let txCount = 0;
+    let volumeWei = 0n;
+
+    for (const tx of json.result) {
+      if (Number(tx.timeStamp) >= oneDayAgo) {
+        txCount++;
+        volumeWei += BigInt(tx.value || '0');
+      }
+    }
+
+    // Convert wei → AVAX (18 decimals)
+    const volumeAvax = Number(volumeWei) / 1e18;
+
+    return { txCount, volumeAvax };
+  } catch {
+    clearTimeout(timeoutId);
+    return { txCount: 0, volumeAvax: 0 };
+  }
+}
+
+/**
+ * Calculate volume score based on 24h transaction volume.
+ * Queries Routescan live, then caches in the TransactionVolume table.
  */
 async function calculateVolumeScore(agentAddress: string): Promise<ScoreComponent> {
   try {
-    const volume = await prisma.transactionVolume.findUnique({
+    const normalized = agentAddress.toLowerCase();
+
+    // 1. Try the cache first (less than 1 hour old)
+    const cached = await prisma.transactionVolume.findUnique({
       where: {
-        agentAddress_period: {
-          agentAddress: agentAddress.toLowerCase(),
-          period: 'DAY',
-        },
+        agentAddress_period: { agentAddress: normalized, period: 'DAY' },
       },
     });
 
-    const volumeAvax = volume ? Number(volume.volumeAvax) : 0;
-    const txCount = volume?.txCount || 0;
+    let volumeAvax: number;
+    let txCount: number;
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const cacheValid = cached && cached.updatedAt > oneHourAgo;
+
+    if (cacheValid) {
+      volumeAvax = Number(cached.volumeAvax);
+      txCount = cached.txCount;
+    } else {
+      // 2. Fetch live from Routescan
+      const live = await fetchLiveVolume(normalized);
+      volumeAvax = live.volumeAvax;
+      txCount = live.txCount;
+
+      // 3. Upsert cache
+      await prisma.transactionVolume.upsert({
+        where: {
+          agentAddress_period: { agentAddress: normalized, period: 'DAY' },
+        },
+        update: {
+          txCount,
+          volumeAvax,
+          volumeUsd: 0,
+        },
+        create: {
+          agentAddress: normalized,
+          period: 'DAY',
+          txCount,
+          volumeAvax,
+          volumeUsd: 0,
+        },
+      });
+    }
 
     // Find the appropriate score based on volume
     let score = 0;
@@ -106,6 +190,7 @@ async function calculateVolumeScore(agentAddress: string): Promise<ScoreComponen
       details: {
         volume24h: `${volumeAvax.toFixed(2)} AVAX`,
         txCount,
+        source: cacheValid ? 'cache' : 'routescan',
       },
     };
   } catch (error) {
@@ -554,4 +639,67 @@ export async function getTrustScoreBreakdown(
 
   // Calculate fresh score
   return calculateTrustScore(agentAddress);
+}
+
+// ---------------------------------------------------------------------------
+// TRACER Scoring (v2) — coexists with legacy scoring above
+// ---------------------------------------------------------------------------
+
+import { calculateTRACER, type TRACERScore } from '@/sentinels/scoring';
+import { type SentinelResult } from '@/sentinels/types';
+
+export type { TRACERScore };
+
+/**
+ * Calculate the TRACER score for an agent using sentinel results.
+ *
+ * This is the v2 scoring engine that replaces the 5-component trust score
+ * with 6 TRACER dimensions fed by real sentinel checks.
+ *
+ * Both scoring systems coexist during the migration period.
+ * The legacy calculateTrustScore() reads from Prisma cache.
+ * This function takes fresh sentinel results and community ratings.
+ *
+ * @param results - Array of SentinelResult from the orchestrator
+ * @param agentAddress - Agent address for fetching community ratings from Prisma
+ * @returns TRACERScore with dimensions, total, and tier
+ */
+export async function calculateTRACERScore(
+  results: SentinelResult[],
+  agentAddress: string
+): Promise<TRACERScore> {
+  const normalizedAddress = agentAddress.toLowerCase();
+
+  logger.info({ address: normalizedAddress }, 'Calculating TRACER score');
+
+  // Fetch community ratings for the reputation dimension
+  let reputationScore: number | undefined;
+  try {
+    const ratings = await prisma.rating.findMany({
+      where: { agentId: normalizedAddress },
+      select: { rating: true },
+    });
+
+    if (ratings.length > 0) {
+      const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
+      const average = sum / ratings.length;
+      reputationScore = Math.round((average / 5) * 100);
+    }
+  } catch (error) {
+    logger.warn({ address: normalizedAddress, error }, 'Failed to fetch ratings for TRACER');
+  }
+
+  const tracerScore = calculateTRACER(results, reputationScore);
+
+  logger.info(
+    {
+      address: normalizedAddress,
+      total: tracerScore.total,
+      tier: tracerScore.tier,
+      sentinelCount: tracerScore.sentinelCount,
+    },
+    'TRACER score calculated'
+  );
+
+  return tracerScore;
 }

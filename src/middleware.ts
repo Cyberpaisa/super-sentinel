@@ -1,38 +1,34 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
  * Rate limiter setup
- * Uses Upstash Redis if configured (persists across deploys/cold starts),
- * falls back to in-memory rate limiting for development.
+ * In-memory rate limiting with endpoint-specific limits.
  */
-const useUpstash = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-
-// Upstash rate limiters (production)
-const upstashLimiters = useUpstash
-  ? {
-      default: new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(100, '60 s'),
-        prefix: 'rl:default',
-      }),
-      register: new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(5, '3600 s'),
-        prefix: 'rl:register',
-      }),
-    }
-  : null;
-
-// In-memory fallback (development / no Redis configured)
-const memoryLimiters = {
-  default: new RateLimiterMemory({ points: 100, duration: 60 }),
-  register: new RateLimiterMemory({ points: 5, duration: 3600 }),
+const rateLimiters = {
+  // Default: 100 requests per minute per IP
+  default: new RateLimiterMemory({
+    points: 100,
+    duration: 60,
+  }),
+  // Registration: 5 requests per hour per IP (stricter)
+  register: new RateLimiterMemory({
+    points: 5,
+    duration: 3600,
+  }),
+  // Heartbeat: 10 requests per minute per IP (prevent balance monitoring abuse)
+  heartbeat: new RateLimiterMemory({
+    points: 10,
+    duration: 60,
+  }),
+  // Quick-check: 30 requests per minute per IP (prevent free-tier abuse)
+  quickCheck: new RateLimiterMemory({
+    points: 30,
+    duration: 60,
+  }),
 };
 
 /**
@@ -59,10 +55,20 @@ function shouldSkipRateLimit(pathname: string): boolean {
 }
 
 /**
- * Check if the path is a registration endpoint
+ * Select the appropriate rate limiter for a given path.
+ * Stricter limits for free/public endpoints to prevent abuse.
  */
-function isRegistrationEndpoint(pathname: string): boolean {
-  return pathname.includes('/register') || pathname.includes('/signup');
+function selectRateLimiter(pathname: string): { limiter: RateLimiterMemory; key: string } {
+  if (pathname.includes('/heartbeat')) {
+    return { limiter: rateLimiters.heartbeat, key: 'heartbeat' };
+  }
+  if (pathname.includes('/quick-check')) {
+    return { limiter: rateLimiters.quickCheck, key: 'quickCheck' };
+  }
+  if (pathname.includes('/register') || pathname.includes('/signup')) {
+    return { limiter: rateLimiters.register, key: 'register' };
+  }
+  return { limiter: rateLimiters.default, key: 'default' };
 }
 
 /**
@@ -88,46 +94,6 @@ function rateLimitResponse(retryAfter: number): NextResponse {
 }
 
 /**
- * Apply rate limiting using Upstash or in-memory fallback
- * Returns null if allowed, or a 429 response if rate limited
- */
-async function applyRateLimit(
-  clientIp: string,
-  isRegistration: boolean
-): Promise<{ allowed: boolean; remaining: number; resetSeconds: number }> {
-  const limiterType = isRegistration ? 'register' : 'default';
-
-  if (upstashLimiters) {
-    const limiter = upstashLimiters[limiterType];
-    const result = await limiter.limit(clientIp);
-    return {
-      allowed: result.success,
-      remaining: result.remaining,
-      resetSeconds: Math.ceil((result.reset - Date.now()) / 1000),
-    };
-  }
-
-  // Fallback to in-memory
-  const limiter = memoryLimiters[limiterType];
-  const key = `${clientIp}_${limiterType}`;
-  try {
-    const result = await limiter.consume(key);
-    return {
-      allowed: true,
-      remaining: result.remainingPoints,
-      resetSeconds: Math.ceil(result.msBeforeNext / 1000),
-    };
-  } catch (rateLimiterRes) {
-    const res = rateLimiterRes as { msBeforeNext: number };
-    return {
-      allowed: false,
-      remaining: 0,
-      resetSeconds: Math.ceil(res.msBeforeNext / 1000),
-    };
-  }
-}
-
-/**
  * Middleware for Supabase auth session refresh and rate limiting
  * Runs on every request to keep the session alive
  */
@@ -140,17 +106,18 @@ export async function middleware(request: NextRequest) {
   let reset: string | null = null;
 
   if (pathname.startsWith('/api') && !shouldSkipRateLimit(pathname)) {
-    const rateLimitResult = await applyRateLimit(
-      clientIp,
-      isRegistrationEndpoint(pathname)
-    );
+    try {
+      const { limiter, key } = selectRateLimiter(pathname);
+      const limiterKey = `${clientIp}_${key}`;
+      const rateLimitRes = await limiter.consume(limiterKey);
 
-    if (!rateLimitResult.allowed) {
-      return rateLimitResponse(rateLimitResult.resetSeconds);
+      remaining = String(rateLimitRes.remainingPoints);
+      reset = String(Math.ceil(rateLimitRes.msBeforeNext / 1000));
+    } catch (rateLimiterRes) {
+      // Rate limit exceeded
+      const res = rateLimiterRes as { msBeforeNext: number };
+      return rateLimitResponse(res.msBeforeNext / 1000);
     }
-
-    remaining = String(rateLimitResult.remaining);
-    reset = String(rateLimitResult.resetSeconds);
   }
 
   let response = NextResponse.next({

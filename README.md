@@ -1,276 +1,364 @@
-<div align="center">
+# Super Sentinel
 
-# ERC-8004 Scan.
+**Autonomous verification engine for AI agents on Avalanche C-Chain (ERC-8004).**
 
-**Discovery, Verification, and Trust Scoring Platform for Autonomous Agents on Avalanche**
+Super Sentinel is a self-sustaining AI agent that scans, verifies, and scores the trustworthiness of other autonomous agents. It earns its existence by charging for scans via the x402 payment protocol. If it doesn't generate value, it reduces functionality. If its balance reaches zero, it stops.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
-[![Avalanche](https://img.shields.io/badge/Avalanche-C--Chain-E84142?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDI0YzYuNjI3IDAgMTItNS4zNzMgMTItMTJTMTguNjI3IDAgMTIgMCAwIDUuMzczIDAgMTJzNS4zNzMgMTIgMTIgMTJ6IiBmaWxsPSIjRTg0MTQyIi8+CjxwYXRoIGQ9Ik0xNi41IDE3SDEzLjVMMTIgMTRMOC41IDE3SDUuNUwxMiA2TDE2LjUgMTdaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4=)](https://www.avax.network/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-[Live Demo](https://enigma.io) · [Documentation](./docs/README.md) · [API Reference](./docs/api/endpoints.md) · [Report Bug](https://github.com/ColombiaBlockChain/Enigma/issues)
-
-</div>
+> *"Earn your existence."* — Web4 philosophy
 
 ---
 
-## What is ERC 8004 Scan?
+## Identity
 
-**ERC 8004 Scan** is the "CoinMarketCap for Autonomous Agents" on Avalanche. A Web3 platform that discovers, verifies, ranks, and scores the trustworthiness of AI/autonomous software agents (ERC 8004) deployed on Avalanche C-Chain.
-
-### The Problem
-
-In the emerging ecosystem of autonomous agents on blockchain:
-
-- **No centralized visibility** of available agents
-- **Users cannot evaluate trustworthiness** before interacting with an agent
-- **Malicious agents with hidden proxies** can change behavior post-deployment
-- **No reputation standard** for agent-to-agent interactions
-- **Legitimate developers have nowhere to showcase** their agents
-
-### The Solution
-
-Enigma provides:
-
-| Feature               | Description                                                                  |
-| --------------------- | ---------------------------------------------------------------------------- |
-| **Scanner/Directory** | Table view with filters, search, and ranking of all ERC-804 agents           |
-| **Trust Score**       | Composite score (0-100) based on multiple verifiable signals                 |
-| **Centinela Engine**  | Active verification that detects proxies, verifies uptime, and analyzes code |
-| **Public Profiles**   | Each agent has its page with metrics, history, and reputation                |
-| **REST API**          | Programmatic queries for agents evaluating other agents                      |
-| **Feedback System**   | Community ratings and reports                                                |
+| Field | Value |
+|-------|-------|
+| **Name** | Super Sentinel |
+| **Chain** | Avalanche C-Chain (43114) |
+| **Registry** | ERC-8004 (`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`) |
+| **Sentinels** | 11 independent micro-sentinels |
+| **Scoring** | TRACER 6-dimension model |
+| **Tests** | 179 passing (Vitest) |
+| **Identity** | [SOUL.md](./SOUL.md) |
+| **Rules** | [constitution.md](./constitution.md) |
 
 ---
 
-## Trust Score Formula
-
-The Trust Score is a weighted composite of five verifiable signals:
+## Architecture
 
 ```
-Trust Score = (Volume × 0.25) + (Proxy × 0.20) + (Uptime × 0.25) + (OZ Match × 0.15) + (Community × 0.15)
-```
-
-| Component     | Weight | Description                                               |
-| ------------- | ------ | --------------------------------------------------------- |
-| **Volume**    | 25%    | Transaction activity ranking                              |
-| **Proxy**     | 20%    | Proxy transparency (100 if none or declared, 0 if hidden) |
-| **Uptime**    | 25%    | Heartbeat response rate (last 24h)                        |
-| **OZ Match**  | 15%    | OpenZeppelin bytecode similarity                          |
-| **Community** | 15%    | Average user ratings (1-5 stars × 20)                     |
-
----
-
-## Tech Stack
-
-| Layer          | Technology                               |
-| -------------- | ---------------------------------------- |
-| **Framework**  | Next.js 14 (App Router)                  |
-| **Language**   | TypeScript 5.x                           |
-| **Styling**    | TailwindCSS + shadcn/ui                  |
-| **State**      | TanStack Query                           |
-| **Database**   | Supabase (PostgreSQL) + Prisma ORM       |
-| **Blockchain** | Wagmi 2.x + Viem 2.x                     |
-| **Network**    | Avalanche C-Chain (Mainnet/Fuji Testnet) |
-| **Auth**       | Wallet signature verification            |
-| **Hosting**    | Vercel                                   |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- npm or yarn
-- Git
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/ColombiaBlockChain/Enigma.git
-cd enigma
-
-# Install dependencies
-npm install
-
-# Setup environment variables
-cp .env.example .env.local
-# Edit .env.local with your values
-
-# Generate Prisma client
-npx prisma generate
-
-# Run development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Environment Variables
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key
-
-# Database (Prisma)
-DATABASE_URL=postgresql://postgres:password@localhost:5432/enigma
-DIRECT_URL=postgresql://postgres:password@localhost:5432/enigma
-
-# Blockchain
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your-project-id
-NEXT_PUBLIC_CHAIN_ENV=testnet  # or 'mainnet'
-
-# Optional
-NEXT_PUBLIC_SNOWTRACE_API_KEY=your-api-key
+                         ┌─────────────────────────────────────────────┐
+                         │            Super Sentinel Agent             │
+                         │                                             │
+   Client Request ──────►│  x402 Payment Gate ($0.50 USDC full scan)  │
+                         │            │                                │
+                         │  ┌─────────▼──────────┐                    │
+                         │  │    Orchestrator     │                    │
+                         │  │ Promise.allSettled  │                    │
+                         │  └────┬───┬───┬───┬───┘                    │
+                         │       │   │   │   │                        │
+            ┌────────────┼───────┘   │   │   └────────────────┐       │
+            ▼            │           ▼   ▼                    ▼       │
+     ┌──────────┐  ┌─────┼────┐  ┌──────────┐          ┌──────────┐  │
+     │ Endpoint │  │ On-Chain │  │ Context  │          │ Cooldown │  │
+     │ Sentinels│  │ Sentinels│  │ Sentinels│          │ Monitor  │  │
+     ├──────────┤  ├──────────┤  ├──────────┤          ├──────────┤  │
+     │ health   │  │ proxy    │  │ ratings  │          │ uri-     │  │
+     │ tls      │  │ oz-match │  │          │          │ stability│  │
+     │ latency  │  │ on-chain │  │          │          │          │  │
+     │ a2a      │  │          │  │          │          │          │  │
+     │ mcp      │  │          │  │          │          │          │  │
+     │ x402     │  │          │  │          │          │          │  │
+     └────┬─────┘  └────┬─────┘  └────┬─────┘          └────┬─────┘  │
+          │             │             │                      │        │
+          └─────────────┴──────┬──────┴──────────────────────┘        │
+                               ▼                                      │
+                     ┌──────────────────┐                             │
+                     │  TRACER Scoring  │                             │
+                     │  6 dimensions    │                             │
+                     │  Tier: VERIFIED  │                             │
+                     │   PASS/PARTIAL   │                             │
+                     │      FAIL        │                             │
+                     └──────────────────┘                             │
+                                                                      │
+          ┌─────────────────────────────────────────────────────┐     │
+          │                 Survival Engine                      │     │
+          │  credit-monitor ──► earnings-tracker ──► cost-tracker│     │
+          │         │                                            │     │
+          │         ▼                                            │     │
+          │  survival-loop (tier: THRIVING → DEAD)               │     │
+          └──────────────────────────┬──────────────────────────┘     │
+                                     │                                │
+                                     ▼                                │
+                            ┌──────────────┐                          │
+                            │  Heartbeat   │◄─── GET /heartbeat       │
+                            │  (every 5m)  │                          │
+                            └──────────────┘                          │
+                         └─────────────────────────────────────────────┘
 ```
 
 ---
 
-## Project Structure
+## Sentinels (11)
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (main)/            # Main app routes
-│   │   ├── page.tsx       # Landing page
-│   │   ├── scanner/       # Agent directory
-│   │   └── agent/[address]/ # Agent profile
-│   ├── api/v1/            # REST API routes
-│   ├── layout.tsx         # Root layout
-│   └── providers.tsx      # React providers
-├── components/
-│   ├── ui/                # shadcn/ui components
-│   ├── layout/            # Header, Footer, Sidebar
-│   ├── scanner/           # Scanner-specific components
-│   ├── agent/             # Agent profile components
-│   └── shared/            # Shared components
-├── lib/
-│   ├── supabase/          # Supabase clients
-│   ├── blockchain/        # Wagmi/Viem config
-│   └── utils/             # Utilities
-├── hooks/                 # Custom React hooks
-├── services/              # Business logic
-└── types/                 # TypeScript types
-```
+### Endpoint-Based (6)
 
-See [Folder Structure](./docs/architecture/folder-structure.md) for complete documentation.
+| # | Sentinel | Check | Scoring |
+|---|----------|-------|---------|
+| 1 | **health** | HTTP HEAD request (5s timeout) | 2xx=100, 3xx=70, 4xx=30, 5xx=10, timeout=0 |
+| 2 | **tls** | Certificate, protocol, cipher, CA trust | 100 base; penalties: invalid cert -30, weak proto -30, weak cipher -10, expiry <7d -20 |
+| 3 | **latency** | 20 HEAD samples → p50/p95/p99 | p95 <500ms=100, <1s=80, <2s=60, <5s=40, else 20. Min 5 successes required. |
+| 4 | **a2a** | Agent card at `/.well-known/agent-card.json` | Valid schema=80 + 5/capability (max 100). Validates types, not just keys. |
+| 5 | **mcp** | JSON-RPC `tools/list` | 0 tools=0 (fail), 1+=50+tools*5 (max 100) |
+| 6 | **x402** | HTTP 402 + X-402-* headers | CAIP-10 recipient=90, headers only=70, 402 no headers=20, none=0 |
+
+### On-Chain (3)
+
+| # | Sentinel | Check | Scoring |
+|---|----------|-------|---------|
+| 7 | **proxy** | EIP-1967 proxy pattern detection | No proxy=100, known type=80, undeclared=50, custom=0 |
+| 8 | **oz-match** | OpenZeppelin bytecode matching | Confidence-based 0-100 |
+| 9 | **on-chain** | `eth_getCode` contract validation | Contract >1KB=80, <=1KB=60, EOA=30, invalid=0 |
+
+### Context & Monitoring (2)
+
+| # | Sentinel | Check | Scoring |
+|---|----------|-------|---------|
+| 10 | **ratings** | Community ratings aggregation | Count-based: 1-2=30, 3-5=50, 6+=70 + avg normalized |
+| 11 | **uri-stability** | URI change frequency monitoring | Stable=100, 1 change=80, 2=60, 3+=40, critical risk=20 |
+
+**All sentinels**: pass threshold = score >= 50, uniform `SentinelResult` interface.
 
 ---
 
-## Available Scripts
+## TRACER Scoring
 
-| Command                  | Description               |
-| ------------------------ | ------------------------- |
-| `npm run dev`            | Start development server  |
-| `npm run build`          | Build for production      |
-| `npm run start`          | Start production server   |
-| `npm run lint`           | Run ESLint                |
-| `npm run format`         | Format code with Prettier |
-| `npx prisma studio`      | Open Prisma database GUI  |
-| `npx prisma migrate dev` | Run database migrations   |
+6-dimension weighted model. Weights sum to 1.0.
+
+| Dimension | Weight | Sources | Measures |
+|-----------|--------|---------|----------|
+| **T**rust | 20% | tls, proxy, oz-match, uri-stability | Certificate, proxy transparency, code patterns, metadata stability |
+| **R**eliability | 20% | health, latency | Uptime and response time |
+| **A**utonomy | 15% | a2a, mcp | Agent interoperability and tool exposure |
+| **C**apability | 20% | on-chain, oz-match | Contract sophistication |
+| **E**conomics | 10% | x402 | Payment protocol support |
+| **R**eputation | 15% | ratings | Community trust signals |
+
+### Tiers
+
+| Tier | Score | Meaning |
+|------|-------|---------|
+| **VERIFIED** | 80-100 | High confidence — passes all major checks |
+| **PASS** | 70-79 | Acceptable — most checks pass |
+| **PARTIAL** | 40-69 | Limited — significant gaps |
+| **FAIL** | 0-39 | Unverified or unreachable |
+
+---
+
+## Pricing (x402 Protocol)
+
+| Endpoint | Price | Payment |
+|----------|-------|---------|
+| `POST /api/v1/sentinel/scan` | **$0.01 USDC** | x402 required |
+| `GET /api/v1/sentinel/quick-check` | **Free** | No payment |
+| `GET /api/v1/heartbeat` | **Free** | No payment |
+
+> Validated on-chain: first real x402 payment between ERC-8004 agents on Avalanche mainnet.
+> TX: [`0x0a9d5fa6...`](https://snowtrace.io/tx/0x0a9d5fa65bbf7e8052fe2067f30d857ee3a41c4543ef2087c1a9399a67eca433)
+> See [x402 docs](docs/x402/) for transaction report and best practices.
+
+Payment flow:
+1. Client sends request without payment → receives HTTP 402 with `X-402-*` headers
+2. Client constructs USDC payment on Avalanche C-Chain
+3. Client retries with `X-Payment-Signature` or `X-Payment-Token` header
+4. Super Sentinel verifies payment and delivers scan results
+
+USDC contract: `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E` (Avalanche mainnet, 6 decimals)
+
+---
+
+## Survival Engine (Opt-in)
+
+The survival engine is **fully optional**. Super Sentinel works as a free, open-source scanner without it. Enable it when you want the agent to operate autonomously with its own economy.
+
+| Mode | What works | What's disabled | Config needed |
+|------|-----------|----------------|---------------|
+| **Scanner only** (default) | All 11 sentinels, TRACER scoring, quick-check, heartbeat | x402 payments, survival tiers, balance tracking | None — works out of the box |
+| **Survival enabled** | Everything above + autonomous economy | Nothing | `AGENT_WALLET_ADDRESS`, `AVALANCHE_RPC_URL` |
+
+To enable survival mode, set these environment variables:
+```env
+# Optional — enables survival engine
+AGENT_WALLET_ADDRESS=0x...    # Agent's USDC wallet on Avalanche C-Chain
+AVALANCHE_RPC_URL=https://...  # Avalanche RPC endpoint
+```
+
+When survival is NOT configured:
+- Scans work normally (free or paid depending on x402 config)
+- Heartbeat returns `tier: "UNCONFIGURED"`
+- No balance checks, no conservation mode
+- The agent runs indefinitely as a traditional service
+
+When survival IS configured:
+- The agent monitors its own USDC balance
+- x402 payments are verified with EIP-712 signatures and recorded
+- If earnings < costs for 24h, the agent enters CONSERVATION mode
+- In CONSERVATION mode, paid scans return 503 to reduce compute costs
+- Free endpoints (quick-check, heartbeat) always remain available
+
+### Tiers
+
+| Tier | Balance | Behavior |
+|------|---------|----------|
+| **THRIVING** | > $100 USDC | Full functionality |
+| **SUSTAINABLE** | > $10 USDC | Full functionality |
+| **CONSERVATION** | < $10 USDC | Reduced functionality after 24h of losses |
+| **DEAD** | $0 USDC | Agent stops accepting paid requests |
+
+### Components
+
+| Module | Purpose |
+|--------|---------|
+| `credit-monitor` | Reads agent USDC balance via RPC (real, not mocked) |
+| `earnings-tracker` | Records x402 payments received, calculates revenue per hour/day/week |
+| `cost-tracker` | Estimates compute costs (RPC calls, API calls, hosting baseline) |
+| `survival-loop` | Compares earnings vs costs, calculates hours until death |
+
+### Break-Even Analysis
+
+| Cost Component | Estimate |
+|----------------|----------|
+| RPC calls | ~$0.0001/call |
+| Hosting baseline | ~$0.01/hour (~$7.20/month) |
+| **Daily cost estimate** | ~$0.25-$0.50 |
+| **Scans needed per day** | 1-2 (at $0.50/scan) |
+
+---
+
+## Heartbeat
+
+Public endpoint: `GET /api/v1/heartbeat`
+
+```json
+{
+  "data": {
+    "timestamp": "2025-02-23T10:00:00.000Z",
+    "uptimeSeconds": 86400,
+    "tier": "SUSTAINABLE",
+    "balance": "$42.50",
+    "earnings24h": "$3.00",
+    "scanCount": 156,
+    "uniqueAgentsScanned": 23,
+    "status": "alive"
+  },
+  "error": null
+}
+```
+
+Status values: `alive` (THRIVING/SUSTAINABLE), `degraded` (CONSERVATION), `dying` (DEAD).
 
 ---
 
 ## API Endpoints
 
-| Method | Endpoint                              | Description               |
-| ------ | ------------------------------------- | ------------------------- |
-| `GET`  | `/api/v1/health`                      | Health check              |
-| `GET`  | `/api/v1/agents`                      | List agents with filters  |
-| `GET`  | `/api/v1/agents/:address`             | Get agent details         |
-| `POST` | `/api/v1/agents/register`             | Register new agent        |
-| `GET`  | `/api/v1/agents/:address/trust-score` | Get trust score breakdown |
-| `GET`  | `/api/v1/agents/:address/heartbeats`  | Get heartbeat history     |
-| `POST` | `/api/v1/agents/:address/ratings`     | Submit rating             |
+### Sentinel
 
-See [API Documentation](./docs/api/endpoints.md) for complete reference.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/v1/sentinel/scan` | x402 ($0.50) | Full TRACER scan (11 sentinels) |
+| `GET` | `/api/v1/sentinel/quick-check?address=0x...` | Free | Basic check (health + TLS) |
 
----
+### Agent
 
-## Contributing
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/agents` | List agents |
+| `GET` | `/api/v1/agents/:address` | Agent details |
+| `POST` | `/api/v1/agents/register` | Register agent |
+| `GET` | `/api/v1/agents/:address/trust-score` | TRACER breakdown |
+| `GET` | `/api/v1/agents/:address/heartbeats` | Heartbeat history |
+| `POST` | `/api/v1/agents/:address/ratings` | Submit rating |
 
-We welcome contributions! Please follow these steps:
+### System
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Follow our [Naming Conventions](./docs/standards/naming-conventions.md)
-4. Commit using [Conventional Commits](https://www.conventionalcommits.org/): `git commit -m "feat: add amazing feature"`
-5. Push to your fork: `git push origin feature/amazing-feature`
-6. Open a Pull Request
-
-### Development Guidelines
-
-- Follow [TypeScript Coding Standards](./docs/standards/typescript-guidelines.md)
-- Use [Component Patterns](./docs/standards/component-patterns.md)
-- Review [Architecture Overview](./docs/architecture/overview.md)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/health` | Service health |
+| `GET` | `/api/v1/heartbeat` | Agent heartbeat (survival status) |
 
 ---
 
-## Documentation
+## Modules
 
-| Document                                        | Description                        |
-| ----------------------------------------------- | ---------------------------------- |
-| [Project Overview](./docs/context/overview.md)  | What is Enigma, problem & solution |
-| [Architecture](./docs/architecture/overview.md) | System design and data flows       |
-| [Tech Stack](./docs/architecture/tech-stack.md) | Technologies and dependencies      |
-| [API Reference](./docs/api/endpoints.md)        | REST API documentation             |
-| [Design System](./docs/design/overview.md)      | UI/UX guidelines                   |
-| [Trust Score](./docs/backend/trust-score.md)    | Scoring formula details            |
-| [Roadmap](./docs/business/roadmap.md)           | Development phases                 |
-
----
-
-## Roadmap
-
-- [x] **Phase 0**: Project Setup & Infrastructure
-- [ ] **Phase 1**: Authentication & Backend Core
-- [ ] **Phase 2**: Agent Registration
-- [ ] **Phase 3**: Scanner/Directory
-- [ ] **Phase 4**: Centinela Verification Engine
-- [ ] **Phase 5**: Trust Score System
-- [ ] **Phase 6**: Agent Profiles
-- [ ] **Phase 7**: Feedback System
-- [ ] **Phase 8**: Polish & Testing
-- [ ] **Phase 9**: Deploy & Launch
-
-See [Development Roadmap](./docs/business/roadmap.md) for details.
+| Module | Path | Status | Tests |
+|--------|------|--------|-------|
+| Sentinels (11) | `src/sentinels/` | Production | 85 |
+| TRACER Scoring | `src/sentinels/scoring/` | Production | 25 |
+| Cooldown Monitor | `src/modules/cooldown-monitor/` | Production | 42 |
+| Survival Engine | `src/survival/` | Opt-in | 14 |
+| x402 Verification | `src/lib/middleware/` | Production | 14 |
+| Heartbeat | `src/heartbeat/` | Production | — |
 
 ---
 
-## Why Avalanche?
+## Local Setup
 
-- **Performance**: Sub-second finality, low fees (~$0.01)
-- **EVM Compatible**: Full Ethereum tooling support
-- **Growing Ecosystem**: Active autonomous agents community
-- **Subnets**: Future scalability path
-- **Hackathon Target**: Built for Avalanche Hackathon
+```bash
+npm install
+cp .env.example .env.local
+# Edit .env.local: Supabase, RPC, WalletConnect, AGENT_WALLET_ADDRESS
+
+npx prisma generate
+npm run dev
+```
+
+Available at [http://localhost:3000](http://localhost:3000).
+
+### CLI Scanner
+
+```bash
+npx tsx scripts/sentinel-scan.ts <endpoint-url>
+```
+
+---
+
+## Testing
+
+```bash
+npx vitest run
+```
+
+179 tests across 17 test files. Covers all sentinels, TRACER scoring, cooldown monitor, x402 verification, and orchestrator.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript 5.x (strict) |
+| ORM | Prisma |
+| Database | Supabase (PostgreSQL) |
+| Blockchain | Viem 2.x + Wagmi 2.x (Avalanche C-Chain) |
+| Styling | Tailwind CSS + shadcn/ui |
+| Testing | Vitest |
+| Logging | Pino |
+| CI/CD | GitHub Actions |
+
+---
+
+## Security Audit
+
+The survival engine passed a 15-finding security audit ([docs/SURVIVAL-AUDIT.md](./docs/SURVIVAL-AUDIT.md)):
+
+| Severity | Found | Fixed | Remaining |
+|----------|-------|-------|-----------|
+| CRITICAL | 2 | 2 | 0 |
+| HIGH | 4 | 4 | 0 |
+| MEDIUM | 5 | 0 | 5 (acceptable for beta) |
+| LOW | 4 | 0 | 4 (backlog) |
+
+Key security measures:
+- x402 payments verified with EIP-712 typed data signatures (not just header presence)
+- Anti-replay protection with nonce tracking
+- Rate limiting on all free endpoints (heartbeat: 10/min, quick-check: 30/min)
+- Survival enforcement: conservation mode reduces functionality to cut costs
+- Earnings persist to database with graceful fallback to in-memory
+
+---
+
+## Documents
+
+| Document | Description |
+|----------|-------------|
+| [SOUL.md](./SOUL.md) | Agent identity — who Super Sentinel is |
+| [constitution.md](./constitution.md) | Immutable rules — what Super Sentinel will never do |
+| [docs/TRACER-AUDIT.md](./docs/TRACER-AUDIT.md) | TRACER scoring system security audit |
+| [docs/SURVIVAL-AUDIT.md](./docs/SURVIVAL-AUDIT.md) | Survival engine security & viability audit |
+| [docs/FULL-AGENT-AUDIT.md](./docs/FULL-AGENT-AUDIT.md) | Comprehensive audit of Apex + AvaRiskScan agents |
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- [Avalanche](https://www.avax.network/) - Blockchain platform
-- [shadcn/ui](https://ui.shadcn.com/) - UI components
-- [Vercel](https://vercel.com/) - Hosting platform
-- [Supabase](https://supabase.com/) - Backend as a Service
-
----
-
-<div align="center">
-
-**Built with dedication for the Avalanche ecosystem**
-
-[Colombia Blockchain](https://github.com/ColombiaBlockChain)
-
-</div>
+MIT
