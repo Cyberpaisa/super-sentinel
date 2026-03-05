@@ -33,8 +33,9 @@ export async function POST(_request: NextRequest) {
 
     const startTime = Date.now();
 
-    // Sync agents from Routescan API (max 20 pages for quick refresh)
-    const result = await syncAgentsFromRoutescan(20);
+    // Sync agents from Routescan API (0 = no page limit, fetch all)
+    const maxPages = parseInt(new URL(_request.url).searchParams.get('maxPages') || '0', 10);
+    const result = await syncAgentsFromRoutescan(maxPages);
 
     // Recalculate trust scores if new agents were indexed
     let updatedScores = 0;
