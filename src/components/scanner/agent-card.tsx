@@ -35,7 +35,8 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, sparklines = {} }: AgentCardProps) {
-  const colors = getTrustColor(agent.trust_score);
+  const displayScore = agent.tracer_score ?? agent.trust_score;
+  const colors = getTrustColor(displayScore);
   const status = getStatusConfig(agent.status);
   const StatusIcon = status.icon;
   const realData = sparklines[agent.address];
@@ -75,11 +76,18 @@ export function AgentCard({ agent, sparklines = {} }: AgentCardProps) {
           </div>
         </div>
 
-        <div className={cn('flex items-center gap-1 rounded-lg px-2.5 py-1.5', colors.bg)}>
-          <span className={cn('font-data text-lg font-bold leading-none', colors.text)}>
-            {agent.trust_score}
-          </span>
-          <span className="text-[10px] text-[#475569]">/100</span>
+        <div className="flex flex-col items-end gap-1">
+          <div className={cn('flex items-center gap-1 rounded-lg px-2.5 py-1.5', colors.bg)}>
+            <span className={cn('font-data text-lg font-bold leading-none', colors.text)}>
+              {displayScore}
+            </span>
+            <span className="text-[10px] text-[#475569]">/100</span>
+          </div>
+          {agent.tracer_tier && (
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: colors.line }}>
+              {agent.tracer_tier}
+            </span>
+          )}
         </div>
       </div>
 

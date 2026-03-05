@@ -34,7 +34,7 @@ const STATUSES = [
 ];
 
 const SORT_FIELDS = [
-  { value: 'trust_score', label: 'Trust score' },
+  { value: 'trust_score', label: 'TRACER score' },
   { value: 'created_at',  label: 'Date added'  },
   { value: 'name',        label: 'Name'         },
 ];
@@ -145,7 +145,7 @@ export function Filters({ values, onChange }: FiltersProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
-            Trust Score
+            TRACER Score
           </p>
           <span className="font-data text-xs font-semibold text-white">
             {values.trustScoreRange[0]} – {values.trustScoreRange[1]}

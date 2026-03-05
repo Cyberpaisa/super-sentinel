@@ -141,9 +141,11 @@ export default function AgentProfilePage() {
 
   const handleShare = () => {
     if (!agent) return;
+    const displayScore = agent.tracerScore?.total ?? agent.trustScore.score;
+    const tierLabel = agent.tracerScore?.tier ? ` (${agent.tracerScore.tier})` : '';
     const url = `${window.location.origin}/agents/${address}`;
     const text = [
-      `\uD83D\uDD0D ${agent.name} \u2014 Trust Score: ${agent.trustScore.score}/100`,
+      `\uD83D\uDD0D ${agent.name} \u2014 TRACER Score: ${displayScore}/100${tierLabel}`,
       `\u2705 ${agent.status} | ${agent.type}`,
       ``,
       `Verified on Enigma \u00B7 Avalanche`,
@@ -213,13 +215,16 @@ export default function AgentProfilePage() {
     { label: 'AGE',          value: formatAge(agent.createdAt) },
   ];
 
-  const breakdownRows = [
-    { label: 'Transaction Volume', score: agent.trustScore.breakdown.volume.score,  weight: agent.trustScore.breakdown.volume.weight },
-    { label: 'Uptime',             score: agent.trustScore.breakdown.uptime.score,   weight: agent.trustScore.breakdown.uptime.weight },
-    { label: 'Proxy Transparency', score: agent.trustScore.breakdown.proxy.score,    weight: agent.trustScore.breakdown.proxy.weight },
-    { label: 'Security Patterns',  score: agent.trustScore.breakdown.ozMatch.score,  weight: agent.trustScore.breakdown.ozMatch.weight },
-    { label: 'Community Ratings',  score: agent.trustScore.breakdown.ratings.score,  weight: agent.trustScore.breakdown.ratings.weight },
-  ];
+  const TRACER_WEIGHTS = { trust: 0.20, reliability: 0.20, autonomy: 0.15, capability: 0.20, economics: 0.10, reputation: 0.15 };
+  const TRACER_LABELS: Record<string, string> = { trust: 'Trust', reliability: 'Reliability', autonomy: 'Autonomy', capability: 'Capability', economics: 'Economics', reputation: 'Reputation' };
+
+  const tracerDimensions = agent.tracerScore
+    ? (Object.entries(agent.tracerScore.dimensions) as [string, number][]).map(([key, score]) => ({
+        label: TRACER_LABELS[key] ?? key,
+        score,
+        weight: TRACER_WEIGHTS[key as keyof typeof TRACER_WEIGHTS] ?? 0,
+      }))
+    : null;
 
   type EventItem = {
     id: string;
@@ -341,18 +346,32 @@ export default function AgentProfilePage() {
           </div>
         </div>
 
-        {/* Score */}
+        {/* TRACER Score */}
         <div className="shrink-0 sm:text-right">
-          <p className="font-data text-5xl font-bold leading-none text-[#4ADE80]">
-            {agent.trustScore.score}
-          </p>
-          <p className="mt-0.5 text-sm text-[#475569]">/100</p>
-          <Link
-            href={`/agents/${address}/trust-graph` as '/'}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] text-[#475569] transition-colors hover:text-white"
-          >
-            Trust Graph →
-          </Link>
+          {agent.tracerScore ? (
+            <>
+              <p className="font-data text-5xl font-bold leading-none" style={{ color: agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185' }}>
+                {agent.tracerScore.total}
+              </p>
+              <p className="mt-0.5 text-sm text-[#475569]">/100</p>
+              <span
+                className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                style={{
+                  backgroundColor: `${agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185'}20`,
+                  color: agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185',
+                }}
+              >
+                {agent.tracerScore.tier}
+              </span>
+            </>
+          ) : (
+            <>
+              <p className="font-data text-5xl font-bold leading-none text-[#475569]">
+                —
+              </p>
+              <p className="mt-1 text-[11px] text-[#475569]">Run a scan</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -488,7 +507,9 @@ export default function AgentProfilePage() {
                 <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">What Changed</p>
                 <ul className="space-y-2 text-xs text-[#94A3B8]">
                   <li>Registered {formatRelativeTime(agent.createdAt)}</li>
-                  <li>Trust score updated {formatRelativeTime(agent.trustScore.lastUpdated)}</li>
+                  {agent.tracerScore && (
+                    <li>TRACER score updated {formatRelativeTime(agent.tracerScore.updatedAt)}</li>
+                  )}
                   {agent.ratings.recent.length > 0 && (
                     <li>Rating received {formatRelativeTime(agent.ratings.recent[0].createdAt)}</li>
                   )}
@@ -530,35 +551,54 @@ export default function AgentProfilePage() {
             </div>
           </div>
 
-          {/* Trust Breakdown */}
-          <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">Trust Breakdown</p>
-              <p className="font-data text-sm font-bold text-white">
-                {agent.trustScore.score}
-                <span className="ml-0.5 text-xs font-normal text-[#475569]">/100</span>
-              </p>
-            </div>
-            <div className="space-y-4">
-              {breakdownRows.map(({ label, score, weight }) => (
-                <div key={label}>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-xs text-[#94A3B8]">{label}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-[#475569]">{Math.round(weight * 100)}%</span>
-                      <span className="font-data w-7 text-right text-xs font-bold text-white">{score}</span>
+          {/* TRACER Dimensions */}
+          {tracerDimensions ? (
+            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+              <div className="mb-5 flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">TRACER Dimensions</p>
+                <p className="font-data text-sm font-bold text-white">
+                  {agent.tracerScore!.total}
+                  <span className="ml-0.5 text-xs font-normal text-[#475569]">/100</span>
+                </p>
+              </div>
+              <div className="space-y-4">
+                {tracerDimensions.map(({ label, score, weight }) => {
+                  const barColor = score >= 80 ? '#4ADE80' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FCD34D' : '#FB7185';
+                  return (
+                    <div key={label}>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-xs text-[#94A3B8]">{label}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-[#475569]">{Math.round(weight * 100)}%</span>
+                          <span className="font-data w-7 text-right text-xs font-bold text-white">{score}</span>
+                        </div>
+                      </div>
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                        <div
+                          className="h-full rounded-full opacity-80 transition-all duration-700"
+                          style={{ width: `${score}%`, backgroundColor: barColor }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
-                    <div
-                      className="h-full rounded-full bg-[#4ADE80] opacity-80 transition-all duration-700"
-                      style={{ width: `${score}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Radar className="mb-3 h-6 w-6 text-[#475569]" />
+                <p className="mb-3 text-sm text-[#475569]">No TRACER score yet</p>
+                <button
+                  onClick={() => runScan(address)}
+                  disabled={isScanning}
+                  className="rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-4 py-2 text-xs font-semibold text-[#22D3EE] transition-colors hover:bg-[rgba(34,211,238,0.1)]"
+                >
+                  {isScanning ? 'Scanning...' : 'Run Sentinel Scan'}
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

@@ -36,7 +36,7 @@ export function StatsSection({ totalAgents, verifiedAgents, volumeDisplay, avgTr
     { label: 'Total Agents', value: totalAgents, icon: Code2 },
     { label: 'Verified', value: verifiedAgents, icon: Shield },
     { label: 'Volume 24h', value: volumeDisplay, icon: BarChart3 },
-    { label: 'Avg Trust Score', value: avgTrustScore, icon: Activity },
+    { label: 'Avg TRACER Score', value: avgTrustScore, icon: Activity },
   ];
 
   return (

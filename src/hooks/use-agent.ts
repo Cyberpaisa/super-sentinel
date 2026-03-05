@@ -98,6 +98,20 @@ export interface AgentDetail {
       createdAt: string;
     }>;
   };
+
+  tracerScore: {
+    total: number;
+    tier: string;
+    dimensions: {
+      trust: number;
+      reliability: number;
+      autonomy: number;
+      capability: number;
+      economics: number;
+      reputation: number;
+    };
+    updatedAt: string;
+  } | null;
 }
 
 /**

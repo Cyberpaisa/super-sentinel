@@ -220,16 +220,24 @@ const columns: ColumnDef<Agent>[] = [
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         className="h-auto p-0 text-[10px] font-semibold uppercase tracking-widest text-[#475569] hover:bg-transparent hover:text-white"
       >
-        Score
+        TRACER
         <ArrowUpDown className="ml-1.5 h-3 w-3" />
       </Button>
     ),
     cell: ({ row }) => {
-      const score = row.original.trust_score;
+      const score = row.original.tracer_score ?? row.original.trust_score;
+      const tier = row.original.tracer_tier;
       return (
-        <span className={cn('font-data inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-bold', getTrustScoreColor(score))}>
-          {score}
-        </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <span className={cn('font-data inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-bold', getTrustScoreColor(score))}>
+            {score}
+          </span>
+          {tier && (
+            <span className="text-[8px] font-semibold uppercase tracking-wider text-[#475569]">
+              {tier}
+            </span>
+          )}
+        </div>
       );
     },
     size: 80,
@@ -279,7 +287,7 @@ export function AgentTable({ agents, sparklines = {}, onSortChange }: AgentTable
     ),
     cell: ({ row }) => (
       <MiniSparkline
-        score={row.original.trust_score}
+        score={row.original.tracer_score ?? row.original.trust_score}
         realData={sparklines[row.original.address]}
       />
     ),
@@ -295,8 +303,9 @@ export function AgentTable({ agents, sparklines = {}, onSortChange }: AgentTable
       const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
         const url  = `${window.location.origin}/agents/${agent.address}`;
+        const displayScore = agent.tracer_score ?? agent.trust_score;
         const text = [
-          `\uD83D\uDD0D ${agent.name} — Trust Score: ${agent.trust_score}/100`,
+          `\uD83D\uDD0D ${agent.name} — TRACER Score: ${displayScore}/100`,
           `\u2705 ${agent.status} | ${agent.type}`,
           ``,
           `Verified on Enigma \u00B7 Avalanche`,

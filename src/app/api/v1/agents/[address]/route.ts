@@ -56,6 +56,10 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
+        tracerScores: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
     });
 
@@ -140,6 +144,23 @@ export async function GET(
           createdAt: r.createdAt.toISOString(),
         })),
       },
+
+      // TRACER score (latest stored snapshot)
+      tracerScore: agent.tracerScores[0]
+        ? {
+            total: agent.tracerScores[0].totalScore,
+            tier: agent.tracerScores[0].tier,
+            dimensions: {
+              trust: agent.tracerScores[0].trust,
+              reliability: agent.tracerScores[0].reliability,
+              autonomy: agent.tracerScores[0].autonomy,
+              capability: agent.tracerScores[0].capability,
+              economics: agent.tracerScores[0].economics,
+              reputation: agent.tracerScores[0].reputation,
+            },
+            updatedAt: agent.tracerScores[0].updatedAt.toISOString(),
+          }
+        : null,
     };
 
     logger.info({

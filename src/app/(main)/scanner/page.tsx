@@ -82,8 +82,8 @@ export default function ScannerPage() {
     ? Math.round((stats.verified / stats.total) * 100)
     : 0;
 
-  const avgTrustScore = agents.length > 0
-    ? Math.round(agents.reduce((s, a) => s + a.trust_score, 0) / agents.length)
+  const avgTracerScore = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + (a.tracer_score ?? a.trust_score), 0) / agents.length)
     : 0;
 
   const handleReset = () => {
@@ -121,9 +121,9 @@ export default function ScannerPage() {
           accentColor="#FCD34D"
         />
         <KpiCard
-          label="Avg Trust Score"
-          value={avgTrustScore}
-          trend={avgTrustScore > 60 ? 'up' : avgTrustScore > 40 ? 'flat' : 'down'}
+          label="Avg TRACER Score"
+          value={avgTracerScore}
+          trend={avgTracerScore > 60 ? 'up' : avgTracerScore > 40 ? 'flat' : 'down'}
           icon={Star}
           accentColor="#4ADE80"
         />

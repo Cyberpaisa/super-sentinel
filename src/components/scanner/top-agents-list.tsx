@@ -24,7 +24,7 @@ function monogram(name: string) {
 
 export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
   const sorted = [...agents]
-    .sort((a, b) => b.trust_score - a.trust_score)
+    .sort((a, b) => (b.tracer_score ?? b.trust_score) - (a.tracer_score ?? a.trust_score))
     .slice(0, 5);
 
   return (
@@ -34,7 +34,7 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
           <TrendingUp className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-white">Top Agents</h3>
         </div>
-        <span className="text-[10px] text-[#475569]">By trust score</span>
+        <span className="text-[10px] text-[#475569]">By TRACER score</span>
       </div>
 
       <div className="space-y-1">
@@ -45,7 +45,8 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
           <p className="py-4 text-center text-xs text-[#475569]">No agents yet</p>
         )}
         {!isLoading && sorted.map((agent, i) => {
-          const color = scoreColor(agent.trust_score);
+          const displayScore = agent.tracer_score ?? agent.trust_score;
+          const color = scoreColor(displayScore);
           return (
             <Link
               key={agent.address}
@@ -73,7 +74,7 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
 
               {/* Score */}
               <span className="font-data text-sm font-bold" style={{ color }}>
-                {agent.trust_score}
+                {displayScore}
               </span>
 
               <ChevronRight className="h-3 w-3 text-[#334155] group-hover:text-[#64748B] transition-colors" />

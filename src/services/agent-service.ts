@@ -209,6 +209,10 @@ export async function getAgents(
             orderBy: { calculatedAt: 'desc' },
             take: 1,
           },
+          tracerScores: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
         },
       }),
       prisma.agent.count({ where }),

@@ -23,6 +23,8 @@ export interface Agent {
   description: string | null;
   status: AgentStatus;
   trust_score: number;
+  tracer_score: number | null;
+  tracer_tier: string | null;
   is_proxy: boolean;
   proxy_type: string;
   owner_address: string;

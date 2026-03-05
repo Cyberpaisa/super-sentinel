@@ -91,6 +91,22 @@ export async function GET(request: NextRequest) {
         ? (meta.services as Array<{ name: string }>).map((s) => s.name)
         : [];
 
+      // Get latest TRACER score if available
+      const agentWithTracer = agent as typeof agent & {
+        tracerScores?: Array<{
+          totalScore: number;
+          tier: string;
+          trust: number;
+          reliability: number;
+          autonomy: number;
+          capability: number;
+          economics: number;
+          reputation: number;
+          createdAt: Date;
+        }>;
+      };
+      const latestTracer = agentWithTracer.tracerScores?.[0];
+
       return {
         address: agent.address,
         name: agent.name,
@@ -98,6 +114,8 @@ export async function GET(request: NextRequest) {
         description: agent.description,
         status: agent.status,
         trust_score: agent.trust_score,
+        tracer_score: latestTracer?.totalScore ?? null,
+        tracer_tier: latestTracer?.tier ?? null,
         is_proxy: agent.is_proxy,
         proxy_type: agent.proxy_type,
         owner_address: agent.owner_address,
