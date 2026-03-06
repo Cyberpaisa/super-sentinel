@@ -314,8 +314,8 @@ export default function AgentProfilePage() {
             <span className={cn('rounded border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider', statusClass(agent.status))}>
               {formatEnumValue(agent.status)}
             </span>
-            {(agent.metadata?.services ?? []).map((svc) => (
-              <span key={svc.name} className={cn('rounded border px-2 py-0.5 text-[10px] font-semibold', getServiceTagStyle(svc.name))}>
+            {(agent.metadata?.services ?? []).map((svc, i) => (
+              <span key={`${svc.name}-${i}`} className={cn('rounded border px-2 py-0.5 text-[10px] font-semibold', getServiceTagStyle(svc.name))}>
                 {svc.name}
               </span>
             ))}
