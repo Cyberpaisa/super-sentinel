@@ -33,9 +33,8 @@ export async function POST(_request: NextRequest) {
 
     const startTime = Date.now();
 
-    // Sync agents from Routescan API (0 = no page limit, fetch all)
-    const maxPages = parseInt(new URL(_request.url).searchParams.get('maxPages') || '0', 10);
-    const result = await syncAgentsFromRoutescan(maxPages);
+    // Sync agents directly from on-chain registry
+    const result = await syncAgentsFromRoutescan();
 
     // Recalculate trust scores if new agents were indexed
     let updatedScores = 0;
@@ -47,7 +46,9 @@ export async function POST(_request: NextRequest) {
 
     const stats = {
       indexed: result.indexed,
+      updated: result.updated,
       skipped: result.skipped,
+      noMetadata: result.noMetadata,
       failed: result.failed,
       total: result.total,
       trustScoresUpdated: updatedScores,
