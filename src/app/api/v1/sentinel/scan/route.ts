@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
 import { ValidationError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
-import { runEndpointSentinels, runAllSentinels, type RatingInput } from '@/sentinels';
+import { runAllSentinels, type RatingInput } from '@/sentinels';
 import { calculateTRACER } from '@/sentinels/scoring';
-import { resolveAgentEndpoint } from '@/services/centinela/sentinels/resolve-endpoint';
+import { resolveAllEndpoints } from '@/services/centinela/sentinels/resolve-endpoint';
 import { recordScan } from '@/heartbeat';
 import { publicClient } from '@/lib/blockchain/client';
 import { REPUTATION_REGISTRY_ABI } from '@/lib/blockchain/abis/reputation-registry';
@@ -123,12 +123,11 @@ async function scanHandler(request: NextRequest) {
 
     logger.info({ address: normalizedAddress }, 'Starting sentinel scan');
 
-    // Resolve endpoint: use provided override or resolve from agent metadata
-    let endpoint = typeof body.endpoint === 'string' ? body.endpoint : null;
+    // Resolve all endpoints: primary, MCP, A2A, x402, registry address
+    const resolved = await resolveAllEndpoints(normalizedAddress);
 
-    if (!endpoint) {
-      endpoint = await resolveAgentEndpoint(normalizedAddress);
-    }
+    // Allow caller to override the primary endpoint
+    const endpoint = typeof body.endpoint === 'string' ? body.endpoint : resolved.primary;
 
     if (!endpoint) {
       return successResponse({
@@ -154,25 +153,24 @@ async function scanHandler(request: NextRequest) {
     // Fetch on-chain reputation ratings from ReputationRegistry
     const ratings = await fetchOnChainRatings(endpoint, logger);
 
-    // Run ALL sentinels (endpoint + on-chain + ratings) in parallel for full TRACER coverage
-    const orchestratorResult = await runAllSentinels(endpoint, normalizedAddress, { ratings });
-
-    // Filter oz-match sentinel when scanning the shared Identity Registry contract
-    // oz-match is designed for agent-specific contracts, not shared ERC-8004 infrastructure
-    const knownRegistries = [
-      ERC8004_CONTRACTS.identity.mainnet.toLowerCase(),
-      ERC8004_CONTRACTS.identity.testnet.toLowerCase(),
-    ];
-    const filteredResults = knownRegistries.includes(normalizedAddress)
-      ? orchestratorResult.results.filter((r) => r.sentinel !== 'oz-match')
-      : orchestratorResult.results;
+    // Run ALL sentinels with per-service endpoints and registry address
+    const orchestratorResult = await runAllSentinels(endpoint, normalizedAddress, {
+      endpointOverrides: {
+        mcp: resolved.mcp,
+        a2a: resolved.a2a,
+        x402: resolved.x402,
+      },
+      onChainAddress: resolved.registryAddress,
+      ratings,
+    });
 
     // Calculate TRACER score from sentinel results
-    const tracerScore = calculateTRACER(filteredResults);
+    const tracerScore = calculateTRACER(orchestratorResult.results);
 
     logger.info({
       address: normalizedAddress,
       endpoint,
+      resolvedEndpoints: resolved,
       total: tracerScore.total,
       tier: tracerScore.tier,
       sentinels: orchestratorResult.summary,
@@ -184,6 +182,12 @@ async function scanHandler(request: NextRequest) {
     return successResponse({
       address: normalizedAddress,
       endpoint,
+      resolvedEndpoints: {
+        mcp: resolved.mcp,
+        a2a: resolved.a2a,
+        x402: resolved.x402,
+        registry: resolved.registryAddress,
+      },
       orchestrator: orchestratorResult,
       tracer: tracerScore,
     });

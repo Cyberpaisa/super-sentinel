@@ -102,22 +102,35 @@ async function runOZSentinel(address: string): Promise<SentinelResult> {
 }
 
 /**
- * Run all endpoint-based sentinels for a given URL.
- *
- * Executes health, TLS, and latency checks in parallel using Promise.allSettled.
- * Each sentinel failure is isolated — one failing does not block the rest.
+ * Per-service endpoint overrides for sentinels that need specific URLs.
  */
-export async function runEndpointSentinels(endpoint: string): Promise<OrchestratorResult> {
+export interface EndpointOverrides {
+  mcp?: string | null;
+  a2a?: string | null;
+  x402?: string | null;
+}
+
+/**
+ * Run all endpoint-based sentinels.
+ *
+ * Each sentinel can use a per-service endpoint override from metadata.services[].
+ * health/tls/latency use the primary endpoint; a2a/mcp/x402 use their own if available.
+ */
+export async function runEndpointSentinels(endpoint: string, overrides?: EndpointOverrides): Promise<OrchestratorResult> {
   const timestamp = new Date().toISOString();
-  logger.info({ endpoint }, 'Starting endpoint sentinel scan');
+  const mcpUrl = overrides?.mcp || endpoint;
+  const a2aUrl = overrides?.a2a || endpoint;
+  const x402Url = overrides?.x402 || endpoint;
+
+  logger.info({ endpoint, mcp: mcpUrl, a2a: a2aUrl, x402: x402Url }, 'Starting endpoint sentinel scan');
 
   const namedChecks = [
     { name: 'health', fn: () => checkHealth(endpoint) },
     { name: 'tls', fn: () => checkTLS(endpoint) },
     { name: 'latency', fn: () => checkLatency(endpoint) },
-    { name: 'a2a', fn: () => checkA2A(endpoint) },
-    { name: 'mcp', fn: () => checkMCP(endpoint) },
-    { name: 'x402', fn: () => checkX402(endpoint) },
+    { name: 'a2a', fn: () => checkA2A(a2aUrl) },
+    { name: 'mcp', fn: () => checkMCP(mcpUrl) },
+    { name: 'x402', fn: () => checkX402(x402Url) },
   ];
 
   const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));
@@ -254,24 +267,41 @@ export async function runContextSentinels(options: {
 }
 
 /**
+ * Options for a full sentinel scan.
+ */
+export interface FullScanOptions {
+  /** Per-service endpoint overrides (MCP, A2A, x402) */
+  endpointOverrides?: EndpointOverrides;
+  /** Contract address for on-chain sentinels (registry, not derived) */
+  onChainAddress?: string | null;
+  /** On-chain reputation ratings */
+  ratings?: RatingInput[];
+}
+
+/**
  * Run ALL sentinels (endpoint + on-chain + context) for a full agent scan.
  *
  * This is the main entry point for a complete agent verification.
  * Runs endpoint-based, on-chain, and context sentinels in parallel, then merges results.
  *
- * Optional `ratings` and `rpcUrl` allow feeding the ratings and on-chain sentinels.
+ * @param endpoint - Primary endpoint for health/tls/latency
+ * @param agentAddress - Derived agent address (for identification only)
+ * @param options - Per-service overrides, on-chain address, ratings
  */
 export async function runAllSentinels(
   endpoint: string,
-  address: string,
-  options?: { ratings?: RatingInput[]; rpcUrl?: string }
+  agentAddress: string,
+  options?: FullScanOptions
 ): Promise<OrchestratorResult> {
   const timestamp = new Date().toISOString();
-  logger.info({ endpoint, address }, 'Starting full sentinel scan');
+  // Use registry address for on-chain checks if available, otherwise fall back to agent address
+  const onChainAddr = options?.onChainAddress || agentAddress;
+
+  logger.info({ endpoint, agentAddress, onChainAddr }, 'Starting full sentinel scan');
 
   const tasks: Promise<OrchestratorResult>[] = [
-    runEndpointSentinels(endpoint),
-    runOnChainSentinels(address),
+    runEndpointSentinels(endpoint, options?.endpointOverrides),
+    runOnChainSentinels(onChainAddr),
   ];
 
   if (options?.ratings && options.ratings.length > 0) {
@@ -295,7 +325,7 @@ export async function runAllSentinels(
     averageScore,
   };
 
-  logger.info({ endpoint, address, summary }, 'Full sentinel scan completed');
+  logger.info({ endpoint, agentAddress, summary }, 'Full sentinel scan completed');
 
-  return { target: `${address}|${endpoint}`, timestamp, results, errors, summary };
+  return { target: `${agentAddress}|${endpoint}`, timestamp, results, errors, summary };
 }

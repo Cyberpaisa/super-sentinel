@@ -196,8 +196,8 @@ const columns: ColumnDef<Agent>[] = [
       if (services && services.length > 0) {
         return (
           <div className="flex flex-wrap gap-1">
-            {services.map((svc) => (
-              <Badge key={svc} variant="outline" className={cn('text-[10px] px-1.5 py-0', getServiceStyle(svc))}>
+            {services.map((svc, i) => (
+              <Badge key={`${svc}-${i}`} variant="outline" className={cn('text-[10px] px-1.5 py-0', getServiceStyle(svc))}>
                 {svc}
               </Badge>
             ))}

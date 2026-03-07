@@ -120,3 +120,110 @@ export async function resolveServiceEndpoint(
 
   return null;
 }
+
+/**
+ * Resolved endpoints for a full sentinel scan.
+ * Each sentinel type gets its own endpoint when available.
+ */
+export interface ResolvedEndpoints {
+  /** Primary endpoint for health/tls/latency checks */
+  primary: string | null;
+  /** MCP endpoint (JSON-RPC) — may differ from primary */
+  mcp: string | null;
+  /** A2A agent card base URL — may differ from primary */
+  a2a: string | null;
+  /** x402 endpoint — may differ from primary */
+  x402: string | null;
+  /** On-chain contract address (registry, not derived) */
+  registryAddress: string | null;
+  /** Owner address for the agent */
+  ownerAddress: string | null;
+}
+
+/**
+ * Resolve all scan-relevant endpoints for an agent.
+ * Reads metadata.services[] to find per-service endpoints.
+ * Returns the registry address for on-chain sentinels.
+ */
+export async function resolveAllEndpoints(agentAddress: string): Promise<ResolvedEndpoints> {
+  const agent = await prisma.agent.findUnique({
+    where: { address: agentAddress },
+    select: { metadata: true, token_uri: true, registry_address: true, owner_address: true },
+  });
+
+  const result: ResolvedEndpoints = {
+    primary: null,
+    mcp: null,
+    a2a: null,
+    x402: null,
+    registryAddress: agent?.registry_address ?? null,
+    ownerAddress: agent?.owner_address ?? null,
+  };
+
+  if (!agent) return result;
+
+  if (agent.metadata && typeof agent.metadata === 'object') {
+    const meta = agent.metadata as Record<string, unknown>;
+    const services = Array.isArray(meta.services) ? meta.services : [];
+
+    // Find per-service endpoints
+    for (const svc of services) {
+      if (!svc || typeof svc !== 'object' || typeof svc.endpoint !== 'string') continue;
+      if (!isScannableUrl(svc.endpoint)) continue;
+      const name = typeof svc.name === 'string' ? svc.name.toLowerCase() : '';
+
+      if (name === 'mcp' && !result.mcp) {
+        result.mcp = svc.endpoint;
+      } else if (name === 'a2a' && !result.a2a) {
+        result.a2a = svc.endpoint;
+      } else if (name === 'x402' && !result.x402) {
+        result.x402 = svc.endpoint;
+      }
+    }
+
+    // Resolve primary (web/api/first scannable)
+    const priorityNames = ['web', 'a2a', 'api'];
+    for (const targetName of priorityNames) {
+      if (result.primary) break;
+      for (const svc of services) {
+        if (svc && typeof svc === 'object' && typeof svc.endpoint === 'string' &&
+            typeof svc.name === 'string' && svc.name.toLowerCase() === targetName &&
+            isScannableUrl(svc.endpoint)) {
+          result.primary = svc.endpoint;
+          break;
+        }
+      }
+    }
+
+    // Fallback primary: any scannable service
+    if (!result.primary) {
+      for (const svc of services) {
+        if (svc && typeof svc === 'object' && typeof svc.endpoint === 'string' &&
+            isScannableUrl(svc.endpoint) &&
+            (!svc.name || !SKIP_SERVICE_NAMES.has(String(svc.name).toLowerCase()))) {
+          result.primary = svc.endpoint;
+          break;
+        }
+      }
+    }
+
+    // Fallback primary: flat metadata fields
+    if (!result.primary) {
+      for (const key of ['endpoint', 'url', 'service_url', 'external_url']) {
+        const value = meta[key];
+        if (typeof value === 'string' && isScannableUrl(value)) {
+          result.primary = value;
+          break;
+        }
+      }
+    }
+  }
+
+  // Fallback primary: token_uri
+  if (!result.primary && agent.token_uri && isScannableUrl(agent.token_uri)) {
+    result.primary = agent.token_uri;
+  }
+
+  logger.debug({ agentAddress, ...result }, 'Resolved all endpoints');
+  return result;
+}
