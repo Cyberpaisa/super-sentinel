@@ -176,11 +176,29 @@ export async function runOnChainSentinels(address: string): Promise<Orchestrator
   const timestamp = new Date().toISOString();
   logger.info({ address }, 'Starting on-chain sentinel scan');
 
-  const namedChecks = [
-    { name: 'proxy', fn: () => runProxySentinel(address) },
-    { name: 'oz-match', fn: () => runOZSentinel(address) },
+  // Skip proxy/oz-match for shared ERC-8004 registry contracts — they are
+  // NFT registries, not individual agent contracts. Analyzing their proxy
+  // pattern or OZ components is meaningless for agent scoring.
+  const knownRegistries = new Set([
+    ERC8004_CONTRACTS.identity.mainnet.toLowerCase(),
+    ERC8004_CONTRACTS.identity.testnet.toLowerCase(),
+    ERC8004_CONTRACTS.reputation.mainnet.toLowerCase(),
+    ERC8004_CONTRACTS.reputation.testnet.toLowerCase(),
+  ]);
+  const isSharedRegistry = knownRegistries.has(address.toLowerCase());
+
+  const namedChecks: Array<{ name: string; fn: () => Promise<SentinelResult> }> = [
     { name: 'on-chain', fn: () => checkOnChain(address) },
   ];
+
+  if (!isSharedRegistry) {
+    namedChecks.unshift(
+      { name: 'proxy', fn: () => runProxySentinel(address) },
+      { name: 'oz-match', fn: () => runOZSentinel(address) },
+    );
+  } else {
+    logger.info({ address }, 'Skipping proxy/oz-match for shared ERC-8004 registry');
+  }
 
   const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));
 
