@@ -12,15 +12,17 @@ export const wagmiConfig = createConfig({
   chains: [avalanche, avalancheFuji],
   connectors: [
     injected(),
-    walletConnect({
-      projectId,
-      metadata: {
-        name: 'Enigma',
-        description: 'Trust Score Platform for Autonomous Agents on Avalanche',
-        url: 'https://enigma.io',
-        icons: ['https://enigma.io/logo.png'],
-      },
-    }),
+    ...(projectId ? [
+      walletConnect({
+        projectId,
+        metadata: {
+          name: 'SuperSentinel',
+          description: 'Advanced monitoring and security platform for autonomous agents',
+          url: 'https://supersentinel.io',
+          icons: ['https://supersentinel.io/logo.png'],
+        },
+      })
+    ] : []),
   ],
   transports: {
     [avalanche.id]: http(),
