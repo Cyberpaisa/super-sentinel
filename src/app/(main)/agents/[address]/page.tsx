@@ -58,20 +58,20 @@ function formatEnumValue(value: string): string {
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 function statusClass(status: string): string {
-  if (status === 'VERIFIED') return 'text-[#4ADE80] border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.08)]';
-  if (status === 'FLAGGED' || status === 'SUSPENDED') return 'text-[#FB7185] border-[rgba(251,113,133,0.25)] bg-[rgba(251,113,133,0.08)]';
-  return 'text-[#475569] border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)]';
+  if (status === 'VERIFIED') return 'text-blue-400 border-blue-500/30 bg-blue-900/20';
+  if (status === 'FLAGGED' || status === 'SUSPENDED') return 'text-rose-400 border-rose-500/30 bg-rose-900/20';
+  return 'text-slate-500 border-slate-700 bg-slate-800/50';
 }
 
 // ─── Service tag colors ──────────────────────────────────────────────────────
 
 function getServiceTagStyle(name: string): string {
   switch (name.toLowerCase()) {
-    case 'mcp':  return 'bg-[rgba(74,222,128,0.1)] text-[#4ADE80] border-[rgba(74,222,128,0.2)]';
-    case 'a2a':  return 'bg-[rgba(252,211,77,0.1)] text-[#FCD34D] border-[rgba(252,211,77,0.2)]';
-    case 'web':  return 'bg-[rgba(34,211,238,0.1)] text-[#22D3EE] border-[rgba(34,211,238,0.2)]';
-    case 'oasf': return 'bg-[rgba(167,139,250,0.1)] text-[#A78BFA] border-[rgba(167,139,250,0.2)]';
-    default:     return 'bg-[rgba(255,255,255,0.05)] text-[#64748B] border-[rgba(255,255,255,0.1)]';
+    case 'mcp':  return 'bg-blue-900/20 text-blue-400 border-blue-500/30';
+    case 'a2a':  return 'bg-amber-900/20 text-amber-400 border-amber-500/30';
+    case 'web':  return 'bg-cyan-900/20 text-cyan-400 border-cyan-500/30';
+    case 'oasf': return 'bg-purple-900/20 text-purple-400 border-purple-500/30';
+    default:     return 'bg-white/5 text-slate-400 border-white/10';
   }
 }
 
@@ -148,7 +148,7 @@ export default function AgentProfilePage() {
       `\uD83D\uDD0D ${agent.name} \u2014 TRACER Score: ${displayScore}/100${tierLabel}`,
       `\u2705 ${agent.status} | ${agent.type}`,
       ``,
-      `Verified on Enigma \u00B7 Avalanche`,
+      `Verified on SuperSentinel \u00B7 Avalanche`,
     ].join('\n');
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -258,10 +258,10 @@ export default function AgentProfilePage() {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'overview',  label: 'Overview' },
-    { id: 'sentinel',  label: 'Sentinel', count: scan ? scan.orchestrator.results.length : undefined },
-    { id: 'activity',  label: 'Activity',  count: allEvents.length },
-    { id: 'community', label: 'Community', count: agent.ratings.count },
-    ...(agent.metadata ? [{ id: 'metadata' as const, label: 'Metadata' }] : []),
+    { id: 'sentinel',  label: 'Sentinel Check', count: scan ? scan.orchestrator.results.length : undefined },
+    { id: 'activity',  label: 'Activity Log',  count: allEvents.length },
+    { id: 'community', label: 'Community Ratings', count: agent.ratings.count },
+    ...(agent.metadata ? [{ id: 'metadata' as const, label: 'Technical Metadata' }] : []),
   ];
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -297,11 +297,11 @@ export default function AgentProfilePage() {
             ) : null}
             <div
               className={cn(
-                'h-16 w-16 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.04)] ring-1 ring-[rgba(255,255,255,0.08)]',
+                'h-16 w-16 items-center justify-center rounded-xl bg-blue-900/10 ring-1 ring-white/10',
                 agent.metadata?.image ? 'hidden' : 'flex',
               )}
             >
-              <Bot className="h-7 w-7 text-[#475569]" />
+              <Bot className="h-7 w-7 text-slate-500" />
             </div>
           </div>
 
@@ -338,7 +338,7 @@ export default function AgentProfilePage() {
               className="inline-flex items-center gap-1 transition-colors hover:text-white"
             >
               {truncateAddress(address)}
-              {copied && <span className="text-[#4ADE80]"> ✓</span>}
+              {copied && <span className="text-blue-400 font-bold"> ✓</span>}
             </button>
             <span>·</span>
             <span>Owner {truncateAddress(agent.ownerAddress)}</span>
@@ -350,15 +350,16 @@ export default function AgentProfilePage() {
         <div className="shrink-0 sm:text-right">
           {agent.tracerScore ? (
             <>
-              <p className="font-data text-5xl font-bold leading-none" style={{ color: agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185' }}>
+              <p className="font-data text-5xl font-extrabold leading-none" style={{ color: agent.tracerScore.tier === 'VERIFIED' ? '#60A5FA' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185' }}>
                 {agent.tracerScore.total}
               </p>
-              <p className="mt-0.5 text-sm text-[#475569]">/100</p>
+              <p className="mt-1 text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">SCORE</p>
               <span
-                className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                className="mt-3 inline-block rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                 style={{
-                  backgroundColor: `${agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185'}20`,
-                  color: agent.tracerScore.tier === 'VERIFIED' ? '#4ADE80' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FCD34D' : '#FB7185',
+                  backgroundColor: `${agent.tracerScore.tier === 'VERIFIED' ? '#60A5FA' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185'}20`,
+                  borderColor: `${agent.tracerScore.tier === 'VERIFIED' ? '#60A5FA' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185'}40`,
+                  color: agent.tracerScore.tier === 'VERIFIED' ? '#60A5FA' : agent.tracerScore.tier === 'PASS' ? '#22D3EE' : agent.tracerScore.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185',
                 }}
               >
                 {agent.tracerScore.tier}
@@ -410,7 +411,7 @@ export default function AgentProfilePage() {
         </a>
         <Link
           href={`/agents/${address}/trust-graph` as '/'}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.06)] px-4 py-2 text-xs font-semibold text-[#4ADE80] transition-colors hover:bg-[rgba(74,222,128,0.1)]"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-900/20 px-4 py-2 text-xs font-bold text-blue-400 transition-colors hover:bg-blue-800/20"
         >
           <GitBranch className="h-3 w-3" />
           Trust Graph
@@ -421,8 +422,8 @@ export default function AgentProfilePage() {
           className={cn(
             'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition-colors',
             isScanning
-              ? 'cursor-wait border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] text-[#22D3EE]'
-              : 'border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] text-[#22D3EE] hover:bg-[rgba(34,211,238,0.1)]',
+              ? 'cursor-wait border-cyan-500/30 bg-cyan-900/10 text-cyan-400'
+              : 'border-cyan-500/30 bg-cyan-900/20 text-cyan-400 hover:bg-cyan-800/20 hover:border-cyan-500/50',
           )}
         >
           <Radar className="h-3 w-3" />
@@ -449,10 +450,10 @@ export default function AgentProfilePage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'relative px-4 py-2.5 text-sm font-medium transition-colors',
+                'relative px-4 py-2.5 text-sm font-bold uppercase tracking-tight transition-colors',
                 activeTab === tab.id
-                  ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-[#4ADE80]'
-                  : 'text-[#475569] hover:text-[#94A3B8]',
+                  ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-blue-500'
+                  : 'text-slate-500 hover:text-slate-300',
               )}
             >
               {tab.label}
@@ -563,7 +564,7 @@ export default function AgentProfilePage() {
               </div>
               <div className="space-y-4">
                 {tracerDimensions.map(({ label, score, weight }) => {
-                  const barColor = score >= 80 ? '#4ADE80' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FCD34D' : '#FB7185';
+                  const barColor = score >= 80 ? '#60A5FA' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FBBF24' : '#FB7185';
                   return (
                     <div key={label}>
                       <div className="mb-1.5 flex items-center justify-between">
@@ -573,9 +574,9 @@ export default function AgentProfilePage() {
                           <span className="font-data w-7 text-right text-xs font-bold text-white">{score}</span>
                         </div>
                       </div>
-                      <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                         <div
-                          className="h-full rounded-full opacity-80 transition-all duration-700"
+                          className="h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
                           style={{ width: `${score}%`, backgroundColor: barColor }}
                         />
                       </div>
@@ -651,12 +652,12 @@ export default function AgentProfilePage() {
                       Sentinel Results
                     </p>
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-[#4ADE80]">{scan.orchestrator.summary.passed} passed</span>
+                      <span className="text-blue-400 font-bold tracking-tight">{scan.orchestrator.summary.passed} passed</span>
                       {scan.orchestrator.summary.failed > 0 && (
-                        <span className="text-[#FB7185]">{scan.orchestrator.summary.failed} failed</span>
+                        <span className="text-rose-400 font-bold tracking-tight">{scan.orchestrator.summary.failed} failed</span>
                       )}
                       {scan.orchestrator.summary.errored > 0 && (
-                        <span className="text-[#FCD34D]">{scan.orchestrator.summary.errored} errored</span>
+                        <span className="text-amber-400 font-bold tracking-tight">{scan.orchestrator.summary.errored} errored</span>
                       )}
                     </div>
                   </div>
@@ -718,10 +719,10 @@ export default function AgentProfilePage() {
                     </span>
                     <span
                       className={cn(
-                        'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                        'shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight',
                         evt.type === 'HEARTBEAT'
-                          ? 'bg-[rgba(255,255,255,0.06)] text-[#94A3B8]'
-                          : 'bg-[rgba(74,222,128,0.08)] text-[#4ADE80]',
+                          ? 'bg-slate-800 text-slate-400'
+                          : 'bg-blue-900/20 text-blue-400 border border-blue-500/20',
                       )}
                     >
                       {evt.type}

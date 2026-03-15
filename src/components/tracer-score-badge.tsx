@@ -11,10 +11,10 @@ import {
 import type { TRACERScore, TRACERTier } from '@/sentinels/scoring/types';
 
 const TIER_COLORS: Record<TRACERTier, string> = {
-  VERIFIED: '#4ADE80',
-  PASS: '#22D3EE',
-  PARTIAL: '#FCD34D',
-  FAIL: '#FB7185',
+  VERIFIED: '#60A5FA', // blue-400
+  PASS: '#22D3EE',     // cyan-400
+  PARTIAL: '#FBBF24',  // amber-400
+  FAIL: '#FB7185',     // rose-400
 };
 
 const DIMENSION_LABELS: Record<string, string> = {
