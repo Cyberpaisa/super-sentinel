@@ -46,12 +46,12 @@ export function Header() {
           <Link href="/" className="group flex items-center gap-2.5">
             <Image
               src="/enigma.png"
-              alt="Enigma"
+              alt="SuperSentinel"
               width={28}
               height={28}
               className="rounded-lg object-contain transition-opacity group-hover:opacity-80"
             />
-            <span className="text-sm font-bold tracking-tight text-white">Enigma</span>
+            <span className="text-sm font-bold tracking-tight text-white">SuperSentinel</span>
           </Link>
 
           {/* Desktop nav */}

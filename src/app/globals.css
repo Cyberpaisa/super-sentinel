@@ -8,21 +8,21 @@
 
 :root {
   /* Backgrounds — deep layered darks */
-  --bg-base:       #0B0F14;
-  --bg-secondary:  #0E141B;
+  --bg-base:       #0A1128;
+  --bg-secondary:  #141E3A;
   --bg-glass:      rgba(255, 255, 255, 0.04);
   --bg-glass-dark: rgba(255, 255, 255, 0.02);
   --bg-input:      rgba(255, 255, 255, 0.05);
 
-  /* Primary — Green */
-  --color-primary:      #4ADE80;
-  --color-primary-dark: #22C55E;
-  --color-primary-glow: rgba(74, 222, 128, 0.35);
+  /* Primary — Blue/Cyan */
+  --color-primary:      #00F0FF;
+  --color-primary-dark: #0070F3;
+  --color-primary-glow: rgba(0, 240, 255, 0.35);
 
   /* Accents */
-  --color-accent-cyan:   #22D3EE;
-  --color-accent-red:    #FB7185;
-  --color-accent-yellow: #FCD34D;
+  --color-accent-cyan:   #00F0FF;
+  --color-accent-blue:    #3B82F6;
+  --color-accent-light:  #93C5FD;
 
   /* Text */
   --text-primary:   #E5E7EB;
@@ -30,22 +30,22 @@
   --text-muted:     #64748B;
 
   /* Status */
-  --color-success: #4ADE80;
-  --color-warning: #FCD34D;
-  --color-error:   #FB7185;
+  --color-success: #00F0FF;
+  --color-warning: #F5A623;
+  --color-error:   #FF0080;
 
   /* Borders */
   --border-subtle:    rgba(255, 255, 255, 0.05);
   --border-light:     rgba(255, 255, 255, 0.08);
   --border-highlight: rgba(255, 255, 255, 0.14);
-  --border-primary:   rgba(74, 222, 128, 0.3);
+  --border-primary:   rgba(0, 240, 255, 0.3);
 
   /* Shadows */
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --shadow-glow:  0 0 20px rgba(74, 222, 128, 0.2);
+  --shadow-glow:  0 0 20px rgba(0, 240, 255, 0.2);
 
   /* Effects */
   --blur-amount: 20px;
@@ -83,8 +83,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* Ambient glow — green top-left, cyan top-right */
   background-image:
-    radial-gradient(circle at 15% 50%, rgba(74, 222, 128, 0.05) 0%, transparent 30%),
-    radial-gradient(circle at 85% 20%, rgba(34, 211, 238, 0.04) 0%, transparent 30%);
+    radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 30%),
+    radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.04) 0%, transparent 30%);
   background-attachment: fixed;
 }
 
@@ -148,7 +148,7 @@ body::before {
 }
 
 .glow-text {
-  text-shadow: 0 0 24px rgba(74, 222, 128, 0.5);
+  text-shadow: 0 0 24px rgba(0, 240, 255, 0.5);
 }
 
 /* Monospace font for numeric data */
@@ -219,8 +219,8 @@ body::before {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.25); }
-  50%       { box-shadow: 0 0 40px rgba(74, 222, 128, 0.5); }
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.25); }
+  50%       { box-shadow: 0 0 40px rgba(0, 240, 255, 0.5); }
 }
 
 @keyframes shimmer {
@@ -277,15 +277,15 @@ body::before {
 }
 .hover-lift:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg), 0 0 30px rgba(74, 222, 128, 0.12);
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 240, 255, 0.12);
 }
 
 .hover-glow {
   transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .hover-glow:hover {
-  box-shadow: 0 0 28px rgba(74, 222, 128, 0.15);
-  border-color: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 0 28px rgba(0, 240, 255, 0.15);
+  border-color: rgba(0, 240, 255, 0.3);
 }
 
 .hover-scale {
@@ -302,8 +302,8 @@ body::before {
   transform: translateY(-3px) scale(1.005);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(74, 222, 128, 0.08);
-  border-color: rgba(74, 222, 128, 0.2);
+    0 0 40px rgba(0, 240, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.2);
 }
 
 /* Animated gradient border on hover */
@@ -320,7 +320,7 @@ body::before {
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(74, 222, 128, 0.5),
+    rgba(0, 240, 255, 0.5),
     rgba(34, 211, 238, 0.4),
     rgba(251, 113, 133, 0.3)
   );
@@ -362,7 +362,7 @@ body::before {
   transition: all 0.2s ease;
 }
 .table-row-animate:hover {
-  background: rgba(74, 222, 128, 0.05);
+  background: rgba(0, 240, 255, 0.05);
   transform: scale(1.003);
 }
 

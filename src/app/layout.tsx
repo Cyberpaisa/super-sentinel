@@ -5,7 +5,6 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Providers } from './providers';
 import { WebsiteJsonLd } from '@/components/shared/json-ld';
-import { Starfield } from '@/components/shared/starfield';
 import { NavigationProgress } from '@/components/shared/navigation-progress';
 
 const inter = Inter({
@@ -25,24 +24,24 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://enigma.app';
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Enigma - Trust Score Platform for Autonomous Agents',
-    template: '%s | Enigma',
+    default: 'SuperSentinel - Advanced Autonomous Monitoring',
+    template: '%s | SuperSentinel',
   },
   description:
-    'Discovery, Verification, and Trust Scoring Platform for Autonomous Agents on Avalanche',
-  keywords: ['blockchain', 'avalanche', 'autonomous agents', 'trust score', 'web3', 'defi', 'smart contracts', 'erc-804'],
-  authors: [{ name: 'Enigma Team' }],
+    'Advanced monitoring and security platform for autonomous agents.',
+  keywords: ['blockchain', 'security', 'monitoring', 'trust score', 'web3', 'defi', 'smart contracts', 'supersentinel'],
+  authors: [{ name: 'SuperSentinel Team' }],
   openGraph: {
-    title: 'Enigma - Trust Score Platform for Autonomous Agents',
-    description: 'Discover, verify, and monitor autonomous smart contract agents on Avalanche',
+    title: 'SuperSentinel - Advanced Autonomous Monitoring',
+    description: 'Advanced monitoring and security platform for autonomous agents.',
     type: 'website',
-    siteName: 'Enigma',
+    siteName: 'SuperSentinel',
     url: BASE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Enigma - Trust Score Platform',
-    description: 'Discover, verify, and monitor autonomous smart contract agents on Avalanche',
+    title: 'SuperSentinel - Advanced Autonomous Monitoring',
+    description: 'Advanced monitoring and security platform for autonomous agents.',
   },
   robots: {
     index: true,
@@ -59,7 +58,6 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <WebsiteJsonLd />
-        <Starfield />
         <NavigationProgress />
         <Providers>
           {children}

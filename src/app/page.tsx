@@ -1,235 +1,177 @@
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck, Activity, Cpu, MessageCircle } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Activity, Cpu, Server, Lock, BarChart3, Globe } from 'lucide-react';
 import { Header, Footer } from '@/components/layout';
-import { prisma } from '@/lib/database/prisma';
-import { FeaturesSection, HowItWorksSection, CTASection } from '@/components/home';
-import { VisitorStats } from '@/components/shared/visitor-stats';
-import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-async function getHomeStats() {
-  const [total, verified, avgResult, recentAgents] = await Promise.all([
-    prisma.agent.count(),
-    prisma.agent.count({ where: { status: 'VERIFIED' } }),
-    prisma.agent.aggregate({ _avg: { trust_score: true } }),
-    prisma.agent.findMany({
-      take: 3,
-      orderBy: { created_at: 'desc' },
-      select: { name: true, trust_score: true, status: true, address: true },
-    }),
-  ]);
-
-  return {
-    total,
-    verified,
-    avgTrustScore: Math.round(avgResult._avg.trust_score ?? 0),
-    verifiedPct: total > 0 ? Math.round((verified / total) * 100) : 0,
-    recentAgents,
-  };
-}
-
-function TrustBadge({ score }: { score: number }) {
-  const color = score >= 80 ? '#4ADE80' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FCD34D' : '#FB7185';
-  const label = score >= 80 ? 'High' : score >= 60 ? 'Medium' : 'Low';
+export default function HomePage() {
   return (
-    <span
-      className="font-data rounded-md px-1.5 py-0.5 text-[10px] font-bold"
-      style={{ background: `${color}18`, color }}
-    >
-      {label} · {score}
-    </span>
-  );
-}
-
-export default async function HomePage() {
-  const stats = await getHomeStats();
-
-  return (
-    <>
+    <div className="min-h-screen bg-[#06101F] text-slate-300 font-sans selection:bg-blue-900 selection:text-white">
       <Header />
 
-      {/* HERO */}
-      <section className="relative flex min-h-[88vh] flex-col items-center justify-center overflow-hidden px-6 text-center">
-
-        {/* Background glows */}
+      {/* HERO SECTION */}
+      <section className="relative flex flex-col items-center justify-center overflow-hidden pt-32 pb-20 px-6 lg:pt-48 lg:pb-32 text-center text-white">
+        
+        {/* Subtle, dispersed radial gradients for a professional enterprise feel */}
         <div
-          className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2"
+          className="pointer-events-none absolute left-0 top-0 -translate-x-1/4 -translate-y-1/4 w-[800px] h-[800px]"
           style={{
-            width: 700,
-            height: 700,
-            background: 'radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 65%)',
-            filter: 'blur(40px)',
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute right-1/4 top-1/4"
-          style={{
-            width: 400,
-            height: 400,
-            background: 'radial-gradient(circle, rgba(34,211,238,0.05) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(30, 64, 175, 0.08) 0%, transparent 50%)',
             filter: 'blur(60px)',
           }}
           aria-hidden="true"
         />
+        <div
+          className="pointer-events-none absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 w-[800px] h-[800px]"
+          style={{
+            background: 'radial-gradient(circle, rgba(14, 165, 233, 0.04) 0%, transparent 50%)',
+            filter: 'blur(70px)',
+          }}
+          aria-hidden="true"
+        />
 
-        <div className="relative z-10 max-w-5xl">
-
-          {/* Network status bar */}
-          <div className="mb-10 flex flex-wrap items-center justify-center gap-4">
-            <div className={cn(
-              'flex items-center gap-2 rounded-full border px-3.5 py-1.5',
-              'border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.06)]',
-            )}>
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[12px] font-medium text-primary">Live · Avalanche Mainnet</span>
-            </div>
-            <div className="hidden items-center gap-5 sm:flex">
-              <span className="font-data text-[12px] text-[#64748B]">
-                <span className="font-semibold text-white">{stats.total}</span> agents indexed
-              </span>
-              <span className="h-3 w-px bg-[rgba(255,255,255,0.08)]" />
-              <span className="font-data text-[12px] text-[#64748B]">
-                <span className="font-semibold text-primary">{stats.verifiedPct}%</span> verified
-              </span>
-              <span className="h-3 w-px bg-[rgba(255,255,255,0.08)]" />
-              <span className="font-data text-[12px] text-[#64748B]">
-                avg score <span className="font-semibold text-white">{stats.avgTrustScore}</span>
-              </span>
-            </div>
+        <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center">
+          
+          <div className="animate-fade-in stagger-1 mb-8 inline-flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/30 px-4 py-1.5 backdrop-blur-sm">
+            <span className="h-2 w-2 rounded-full bg-blue-400 opacity-80" />
+            <span className="text-[11px] font-semibold tracking-wider text-slate-300 uppercase">SuperSentinel Enterprise v1.5 Deployed</span>
           </div>
 
-          {/* Headline */}
-          <h1 className="mb-5 text-5xl font-extrabold leading-[1.1] tracking-tight text-white lg:text-7xl">
-            The Reputation Layer{' '}
-            <br className="hidden sm:block" />
-            for{' '}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(135deg, #4ADE80 0%, #22D3EE 100%)' }}
-            >
-              On-Chain Agents
-            </span>
+          <h1 className="animate-fade-in-up stagger-2 mb-8 text-5xl md:text-7xl lg:text-8xl font-black leading-[1.1] tracking-tight">
+            Advanced Security for <br className="hidden md:block"/>
+            <span className="text-white">Autonomous Agents</span>
           </h1>
 
-          <p className="mx-auto mb-10 max-w-xl text-[17px] leading-relaxed text-[#94A3B8]">
-            Discover, verify, and monitor autonomous smart contract agents on Avalanche.
-            Real-time trust scores backed by on-chain analysis.
+          <p className="animate-fade-in-up stagger-3 mx-auto mb-10 max-w-3xl text-lg md:text-xl font-medium leading-relaxed text-slate-400">
+            SuperSentinel provides institutional-grade intelligence and reputation monitoring for decentralized autonomous networks. Protect your infrastructure with continuous verification, real-time analytics, and automated threat prevention.
           </p>
 
-          {/* CTAs */}
-          <div className="mb-16 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/scanner"
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-7 py-3 text-[14px] font-semibold',
-                'bg-primary text-[#0B0F14] transition-all duration-200',
-                'hover:bg-[#6EE7A0] hover:shadow-[0_0_24px_rgba(74,222,128,0.4)] hover:-translate-y-0.5',
-              )}
+          <div className="animate-fade-in-up stagger-4 flex flex-col sm:flex-row gap-4">
+            <Link 
+              href="/scanner" 
+              className="group inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-900/40"
             >
-              Open Scanner
-              <ArrowRight className="h-4 w-4" />
+              Launch Dashboard
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <a
-              href="https://t.me/enigma_avax"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-7 py-3 text-[14px] font-semibold',
-                'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] text-white',
-                'hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)] transition-all duration-200',
-              )}
+            <Link 
+              href="/scanner/agents" 
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 px-8 py-3.5 text-sm font-semibold text-slate-300 transition-all hover:border-slate-500 hover:bg-slate-800/50"
             >
-              <MessageCircle className="h-4 w-4" />
-              Contact Us
-            </a>
+              Explore Registered Agents
+            </Link>
           </div>
-
-          {/* Live agents preview card */}
-          {stats.recentAgents.length > 0 && (
-            <div className={cn(
-              'mx-auto max-w-md overflow-hidden rounded-xl text-left',
-              'border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.03)]',
-              'backdrop-blur-[20px]',
-            )}>
-              <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                    Recent Agents
-                  </span>
-                </div>
-                <span className="font-data text-[11px] text-[#475569]">live</span>
-              </div>
-
-              <div className="divide-y divide-[rgba(255,255,255,0.04)]">
-                {stats.recentAgents.map((agent) => (
-                  <Link
-                    key={agent.address}
-                    href={`/agents/${agent.address}`}
-                    className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[rgba(255,255,255,0.04)]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md',
-                        'bg-[rgba(74,222,128,0.1)] text-[10px] font-bold text-primary',
-                      )}>
-                        {agent.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="truncate text-[13px] font-medium text-white" style={{ maxWidth: 160 }}>
-                          {agent.name}
-                        </p>
-                        <p className="text-[11px] text-[#475569]">
-                          {agent.status === 'VERIFIED' ? (
-                            <span className="flex items-center gap-1 text-primary">
-                              <ShieldCheck className="h-3 w-3" /> Verified
-                            </span>
-                          ) : (
-                            <span className="capitalize">{agent.status.toLowerCase()}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <TrustBadge score={agent.trust_score} />
-                  </Link>
-                ))}
-              </div>
-
-              <div className="border-t border-[rgba(255,255,255,0.06)] px-4 py-2.5">
-                <Link
-                  href="/scanner/agents"
-                  className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-[#64748B] hover:text-white transition-colors"
-                >
-                  View all {stats.total} agents
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {stats.recentAgents.length === 0 && (
-            <div className={cn(
-              'mx-auto flex max-w-md items-center justify-center gap-3 rounded-xl py-8',
-              'border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.02)]',
-            )}>
-              <Cpu className="h-5 w-5 text-[#334155]" />
-              <span className="text-sm text-[#475569]">No agents indexed yet</span>
-            </div>
-          )}
         </div>
       </section>
 
-      <FeaturesSection />
-      <HowItWorksSection />
-      <CTASection />
+      {/* METRICS & TRUST (Enterprise Look) */}
+      <section className="relative z-10 border-y border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-slate-800/50">
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-white mb-2">99.9%</span>
+              <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Uptime Monitoring</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-white mb-2">10ms</span>
+              <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Scan Latency</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-white mb-2">24/7</span>
+              <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Continuous Defense</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-white mb-2">Zero</span>
+              <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Compromised Agents</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <section className="flex justify-center px-6 py-12">
-        <VisitorStats />
+      {/* CORE CAPABILITIES */}
+      <section className="relative py-24 px-6 lg:py-32">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="text-center mb-16 md:mb-24">
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-6">Institutional Capabilities</h2>
+            <p className="max-w-2xl mx-auto text-lg text-slate-400">
+              Our architecture is designed to handle high-throughput, mission-critical autonomous contracts with absolute reliability and precision.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <FeatureCard 
+              icon={<ShieldCheck className="h-6 w-6 text-blue-400" />}
+              title="Predictive Threat Detection"
+              description="Machine learning models analyze smart contract execution patterns instantly to identify and neutralize malicious behavior before it affects your ecosystem."
+            />
+            <FeatureCard 
+              icon={<Globe className="h-6 w-6 text-blue-400" />}
+              title="Global Agent Discovery"
+              description="A fully decentralized index of autonomous agents, categorized by their on-chain risk profiles, verified credentials, and real-time behavioral score."
+            />
+            <FeatureCard 
+              icon={<BarChart3 className="h-6 w-6 text-blue-400" />}
+              title="Regulatory Intelligence"
+              description="Maintains exhaustive logs and auditable trails for every tracked agent to guarantee full compliance with upcoming financial data regulations."
+            />
+            <FeatureCard 
+              icon={<Lock className="h-6 w-6 text-blue-400" />}
+              title="Immutable Reputation"
+              description="Trust scoring that relies entirely on deterministic on-chain logic, eliminating human bias and ensuring perfectly transparent evaluations."
+            />
+            <FeatureCard 
+              icon={<Server className="h-6 w-6 text-blue-400" />}
+              title="High-Availability Infrastructure"
+              description="Deployed across redundant nodes tailored for Avalanche and EVM-compatible networks, ensuring no single point of failure."
+            />
+            <FeatureCard 
+              icon={<Cpu className="h-6 w-6 text-blue-400" />}
+              title="Semantic Analysis"
+              description="Proprietary heuristics that interpret the true intent of an autonomous agent's transaction payload in less than twenty milliseconds."
+            />
+          </div>
+
+        </div>
+      </section>
+
+      {/* CTA SECTION */}
+      <section className="border-t border-slate-800/60 bg-slate-900/30 py-24 px-6 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to secure your network?</h2>
+          <p className="text-lg text-slate-400 mb-10">
+            Integrate SuperSentinel into your autonomous agent protocols today and guarantee absolute trust and transparency.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link 
+              href="/docs" 
+              className="inline-flex items-center justify-center rounded-lg bg-white/5 border border-white/10 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+            >
+              Read Documentation
+            </Link>
+            <a 
+              href="mailto:contact@supersentinel.io" 
+              className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-transparent px-8 py-3.5 text-sm font-semibold text-slate-300 transition-all hover:border-slate-500"
+            >
+              Contact Sales
+            </a>
+          </div>
+        </div>
       </section>
 
       <Footer />
-    </>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+  return (
+    <div className="flex flex-col items-start p-8 rounded-2xl border border-slate-800/80 bg-slate-800/20 transition-all hover:bg-slate-800/40 hover:border-slate-700">
+      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-900/20 border border-blue-800/30">
+        {icon}
+      </div>
+      <h3 className="mb-3 text-lg font-bold text-white">{title}</h3>
+      <p className="text-sm font-medium leading-relaxed text-slate-400">{description}</p>
+    </div>
   );
 }
