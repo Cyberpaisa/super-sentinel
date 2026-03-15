@@ -103,7 +103,7 @@ export default function ScannerPage() {
           delta={stats?.active24h ? `+${stats.active24h} today` : undefined}
           trend="up"
           icon={Bot}
-          accentColor="#4ADE80"
+          accentColor="#60A5FA" // blue-400
         />
         <KpiCard
           label="Verified"
@@ -111,21 +111,21 @@ export default function ScannerPage() {
           delta={`${stats?.verified ?? 0} agents`}
           trend={verifiedPct > 50 ? 'up' : 'flat'}
           icon={ShieldCheck}
-          accentColor="#22D3EE"
+          accentColor="#22D3EE" // cyan-400
         />
         <KpiCard
           label="Active 24h"
           value={stats?.active24h ?? 0}
           trend="up"
           icon={Activity}
-          accentColor="#FCD34D"
+          accentColor="#FBBF24" // amber-400
         />
         <KpiCard
           label="Avg TRACER Score"
           value={avgTracerScore}
           trend={avgTracerScore > 60 ? 'up' : avgTracerScore > 40 ? 'flat' : 'down'}
           icon={Star}
-          accentColor="#4ADE80"
+          accentColor="#60A5FA" // blue-400
         />
       </div>
 
@@ -176,7 +176,7 @@ export default function ScannerPage() {
         {/* Right sidebar: Filters */}
         <div className="hidden w-64 flex-shrink-0 xl:block">
           <div className="glass p-4">
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+            <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               Filters
             </p>
             <Filters

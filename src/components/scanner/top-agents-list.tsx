@@ -12,10 +12,10 @@ interface TopAgentsListProps {
 }
 
 function scoreColor(score: number) {
-  if (score >= 80) return '#4ADE80';
-  if (score >= 60) return '#22D3EE';
-  if (score >= 40) return '#FCD34D';
-  return '#FB7185';
+  if (score >= 80) return '#60A5FA'; // blue-400
+  if (score >= 60) return '#22D3EE'; // cyan-400
+  if (score >= 40) return '#FBBF24'; // amber-400
+  return '#FB7185'; // rose-400
 }
 
 function monogram(name: string) {
@@ -31,10 +31,10 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
     <div className="glass p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-white">Top Agents</h3>
+          <TrendingUp className="h-4 w-4 text-blue-400" />
+          <h3 className="text-sm font-bold text-white tracking-tight">Top Performance</h3>
         </div>
-        <span className="text-[10px] text-[#475569]">By TRACER score</span>
+        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">By TRACER</span>
       </div>
 
       <div className="space-y-1">
@@ -53,7 +53,7 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
               href={`/agents/${agent.address}`}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-2 py-2 transition-all duration-150',
-                'hover:bg-[rgba(255,255,255,0.04)]',
+                'hover:bg-white/5',
               )}
             >
               {/* Rank */}
@@ -68,7 +68,7 @@ export function TopAgentsList({ agents, isLoading }: TopAgentsListProps) {
               </div>
 
               {/* Name */}
-              <span className="min-w-0 flex-1 truncate text-xs text-[#94A3B8] group-hover:text-white transition-colors">
+              <span className="min-w-0 flex-1 truncate text-xs text-slate-400 group-hover:text-white transition-colors font-medium">
                 {agent.name}
               </span>
 

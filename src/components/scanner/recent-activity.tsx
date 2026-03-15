@@ -12,10 +12,10 @@ interface RecentActivityProps {
 
 function statusIcon(status: string) {
   switch (status) {
-    case 'VERIFIED':   return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
-    case 'FLAGGED':    return <AlertTriangle className="h-3.5 w-3.5 text-[#FB7185]" />;
-    case 'SUSPENDED':  return <AlertTriangle className="h-3.5 w-3.5 text-[#FB7185]" />;
-    default:           return <Clock className="h-3.5 w-3.5 text-[#FCD34D]" />;
+    case 'VERIFIED':   return <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />;
+    case 'FLAGGED':    return <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />;
+    case 'SUSPENDED':  return <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />;
+    default:           return <Clock className="h-3.5 w-3.5 text-amber-400" />;
   }
 }
 
@@ -36,8 +36,8 @@ export function RecentActivity({ agents, isLoading }: RecentActivityProps) {
   return (
     <div className="glass p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Activity className="h-4 w-4 text-[#22D3EE]" />
-        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+        <Activity className="h-4 w-4 text-cyan-400" />
+        <h3 className="text-sm font-bold text-white tracking-tight">Real-time Events</h3>
       </div>
 
       <div className="space-y-1">
@@ -50,12 +50,12 @@ export function RecentActivity({ agents, isLoading }: RecentActivityProps) {
         {!isLoading && recent.map((agent) => (
           <div
             key={agent.address}
-            className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[rgba(255,255,255,0.03)] transition-all"
+            className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5 transition-all cursor-default"
           >
             {statusIcon(agent.status)}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs text-[#94A3B8]">{agent.name}</p>
-              <p className="text-[10px] text-[#475569] capitalize">{agent.status.toLowerCase()}</p>
+              <p className="truncate text-xs text-slate-300 font-medium">{agent.name}</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{agent.status}</p>
             </div>
             <span className="font-data shrink-0 text-[10px] text-[#475569]">
               {timeAgo(agent.updated_at)}

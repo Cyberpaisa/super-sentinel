@@ -33,29 +33,29 @@ interface AgentTableProps {
 }
 
 function getTrustScoreColor(score: number): string {
-  if (score >= 80) return 'text-[#4ADE80] bg-[rgba(74,222,128,0.1)]';
-  if (score >= 60) return 'text-[#22D3EE] bg-[rgba(34,211,238,0.1)]';
-  if (score >= 40) return 'text-[#FCD34D] bg-[rgba(252,211,77,0.1)]';
-  return 'text-[#FB7185] bg-[rgba(251,113,133,0.1)]';
+  if (score >= 80) return 'text-blue-400 bg-blue-900/20';
+  if (score >= 60) return 'text-cyan-400 bg-cyan-900/20';
+  if (score >= 40) return 'text-amber-400 bg-amber-900/20';
+  return 'text-rose-400 bg-rose-900/20';
 }
 
 function getTrustScoreLineColor(score: number): string {
-  if (score >= 80) return '#4ADE80';
-  if (score >= 60) return '#22D3EE';
-  if (score >= 40) return '#FCD34D';
-  return '#FB7185';
+  if (score >= 80) return '#60A5FA'; // blue-400
+  if (score >= 60) return '#22D3EE'; // cyan-400
+  if (score >= 40) return '#FBBF24'; // amber-400
+  return '#FB7185'; // rose-400
 }
 
 function getStatusConfig(status: string) {
   const configs = {
-    VERIFIED:  { icon: ShieldCheck, className: 'bg-[rgba(74,222,128,0.1)] text-[#4ADE80] border-[rgba(74,222,128,0.2)]' },
-    PENDING:   { icon: Clock,       className: 'bg-[rgba(252,211,77,0.1)] text-[#FCD34D] border-[rgba(252,211,77,0.2)]' },
-    FLAGGED:   { icon: ShieldAlert, className: 'bg-[rgba(251,113,133,0.1)] text-[#FB7185] border-[rgba(251,113,133,0.2)]' },
-    SUSPENDED: { icon: ShieldX,     className: 'bg-[rgba(251,113,133,0.08)] text-[#FB7185] border-[rgba(251,113,133,0.15)]' },
+    VERIFIED:  { icon: ShieldCheck, className: 'bg-blue-900/20 text-blue-400 border-blue-500/30' },
+    PENDING:   { icon: Clock,       className: 'bg-amber-900/20 text-amber-400 border-amber-500/30' },
+    FLAGGED:   { icon: ShieldAlert, className: 'bg-rose-900/20 text-rose-400 border-rose-500/30' },
+    SUSPENDED: { icon: ShieldX,     className: 'bg-rose-900/10 text-rose-500 border-rose-500/20' },
   };
   return configs[status as keyof typeof configs] || {
     icon: Shield,
-    className: 'bg-[rgba(255,255,255,0.05)] text-[#64748B] border-[rgba(255,255,255,0.1)]',
+    className: 'bg-slate-800/50 text-slate-400 border-slate-700',
   };
 }
 
@@ -103,11 +103,11 @@ function MiniSparkline({ score, realData }: {
 
 function getServiceStyle(service: string): string {
   switch (service.toLowerCase()) {
-    case 'mcp':  return 'bg-[rgba(74,222,128,0.1)] text-[#4ADE80] border-[rgba(74,222,128,0.2)]';
-    case 'a2a':  return 'bg-[rgba(252,211,77,0.1)] text-[#FCD34D] border-[rgba(252,211,77,0.2)]';
-    case 'web':  return 'bg-[rgba(34,211,238,0.1)] text-[#22D3EE] border-[rgba(34,211,238,0.2)]';
-    case 'oasf': return 'bg-[rgba(167,139,250,0.1)] text-[#A78BFA] border-[rgba(167,139,250,0.2)]';
-    default:     return 'bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.1)] text-[#64748B]';
+    case 'mcp':  return 'bg-blue-900/20 text-blue-400 border-blue-500/30';
+    case 'a2a':  return 'bg-amber-900/20 text-amber-400 border-amber-500/30';
+    case 'web':  return 'bg-cyan-900/20 text-cyan-400 border-cyan-500/30';
+    case 'oasf': return 'bg-purple-900/20 text-purple-400 border-purple-500/30';
+    default:     return 'bg-slate-800/50 border-slate-700 text-slate-400';
   }
 }
 
@@ -308,7 +308,7 @@ export function AgentTable({ agents, sparklines = {}, onSortChange }: AgentTable
           `\uD83D\uDD0D ${agent.name} — TRACER Score: ${displayScore}/100`,
           `\u2705 ${agent.status} | ${agent.type}`,
           ``,
-          `Verified on Enigma \u00B7 Avalanche`,
+          `Verified on SuperSentinel \u00B7 Avalanche`,
         ].join('\n');
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -368,7 +368,7 @@ export function AgentTable({ agents, sparklines = {}, onSortChange }: AgentTable
               key={row.id}
               data-href={`/agents/${row.original.address}`}
               onClick={() => router.push(`/agents/${row.original.address}`)}
-              className="cursor-pointer border-b border-[rgba(255,255,255,0.04)] transition-colors duration-150 hover:bg-[rgba(74,222,128,0.03)]"
+              className="cursor-pointer border-b border-white/5 transition-colors duration-150 hover:bg-white/5"
               style={{ animationDelay: `${index * 30}ms` }}
             >
               {row.getVisibleCells().map((cell) => (

@@ -170,10 +170,10 @@ export function SearchBar({ value, onChange, className }: SearchBarProps) {
           onKeyDown={handleKeyDown}
           placeholder="Search by name or address..."
           className={cn(
-            'w-full pl-10 pr-10 py-2.5 rounded-lg',
-            'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]',
-            'text-white placeholder:text-[rgba(255,255,255,0.4)]',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50',
+            'w-full pl-10 pr-10 py-2.5 rounded-lg font-medium',
+            'bg-white/5 border border-white/10',
+            'text-white placeholder:text-slate-500',
+            'focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50',
             'transition-all'
           )}
         />
@@ -206,7 +206,7 @@ export function SearchBar({ value, onChange, className }: SearchBarProps) {
               left: dropdownRect.left,
               width: dropdownRect.width,
               zIndex: 9999,
-              backgroundColor: '#0f1117',
+              backgroundColor: '#06101F',
               pointerEvents: 'auto',
             }}
           >
@@ -217,8 +217,8 @@ export function SearchBar({ value, onChange, className }: SearchBarProps) {
                 onClick={() => handleSelect(agent)}
                 className={cn(
                   'w-full px-3 py-2 flex items-center gap-3 text-left',
-                  'hover:bg-[rgba(255,255,255,0.1)] transition-colors',
-                  selectedIndex === index && 'bg-[rgba(255,255,255,0.1)]'
+                  'hover:bg-white/5 transition-colors',
+                  selectedIndex === index && 'bg-white/10'
                 )}
               >
                 <div className="flex-1 min-w-0">
@@ -231,15 +231,17 @@ export function SearchBar({ value, onChange, className }: SearchBarProps) {
                 </div>
                 <div
                   className={cn(
-                    'px-2 py-0.5 rounded text-xs font-medium',
-                    agent.trust_score >= 70
-                      ? 'bg-green-500/10 text-green-400'
-                      : agent.trust_score >= 50
-                      ? 'bg-yellow-500/10 text-yellow-400'
-                      : 'bg-red-500/10 text-red-400'
+                    'px-2 py-0.5 rounded text-xs font-bold',
+                    agent.trust_score >= 80
+                      ? 'bg-blue-900/40 text-blue-400'
+                      : agent.trust_score >= 60
+                      ? 'bg-cyan-900/40 text-cyan-400'
+                      : agent.trust_score >= 40
+                      ? 'bg-amber-900/40 text-amber-400'
+                      : 'bg-rose-900/40 text-rose-400'
                   )}
                 >
-                  {agent.trust_score}
+                  {agent.tracer_score ?? agent.trust_score}
                 </div>
               </button>
             ))}

@@ -82,10 +82,10 @@ export function ActivityChart() {
                 key={t}
                 onClick={() => setTimeframe(t)}
                 className={cn(
-                  'rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150',
+                  'rounded-md px-2.5 py-1 text-xs font-bold transition-all duration-150',
                   timeframe === t
-                    ? 'bg-[rgba(74,222,128,0.12)] text-primary'
-                    : 'text-[#64748B] hover:text-[#94A3B8]',
+                    ? 'bg-blue-900/40 text-blue-400'
+                    : 'text-slate-500 hover:text-slate-300',
                 )}
               >
                 {t}
@@ -101,15 +101,15 @@ export function ActivityChart() {
 
       {/* Legend */}
       <div className="flex items-center gap-5">
-        {[
-          { color: '#4ADE80', label: 'Registrations' },
-          { color: '#22D3EE', label: 'Verifications' },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-            <span className="text-xs text-[#64748B]">{label}</span>
-          </div>
-        ))}
+          { [
+            { color: '#60A5FA', label: 'Registrations' },
+            { color: '#22D3EE', label: 'Verifications' },
+          ].map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full" style={{ background: color }} />
+              <span className="text-xs text-slate-500 font-medium">{label}</span>
+            </div>
+          ))}
       </div>
 
       {/* Chart */}
@@ -127,9 +127,9 @@ export function ActivityChart() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stopColor="#4ADE80" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#4ADE80" stopOpacity={0}    />
+                <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#60A5FA" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="#60A5FA" stopOpacity={0}    />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -152,15 +152,15 @@ export function ActivityChart() {
               <Area
                 type="monotone"
                 dataKey="registrations"
-                stroke="#4ADE80"
+                stroke="#60A5FA"
                 strokeWidth={1.5}
-                fill="url(#greenGrad)"
+                fill="url(#blueGrad)"
                 dot={false}
-                activeDot={{ r: 3, fill: '#4ADE80', strokeWidth: 0 }}
+                activeDot={{ r: 3, fill: '#60A5FA', strokeWidth: 0 }}
               />
               <Bar
                 dataKey="verifications"
-                fill="rgba(34,211,238,0.2)"
+                fill="rgba(34,211,238,0.25)"
                 radius={[2, 2, 0, 0]}
                 maxBarSize={18}
               />
