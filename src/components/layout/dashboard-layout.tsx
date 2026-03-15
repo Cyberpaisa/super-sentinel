@@ -8,7 +8,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0B0F14]">
+    <div className="flex h-screen overflow-hidden bg-[#06101F] text-slate-300">
       <DashboardSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <DashboardNavbar onMenuToggle={() => setSidebarOpen((p) => !p)} />
