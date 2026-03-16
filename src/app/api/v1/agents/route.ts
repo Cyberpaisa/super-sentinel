@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       throw new ValidationError('Invalid query parameters', fields);
     }
 
-    const { type, status, minTrustScore, maxTrustScore, service, search, page, limit } = validationResult.data;
+    const { type, status, minTrustScore, maxTrustScore, service, search, sortBy, sortOrder, page, limit } = validationResult.data;
 
     // Build filters
     const filters: AgentFilters = {};
@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
     if (maxTrustScore !== undefined) filters.maxTrustScore = maxTrustScore;
     if (service) filters.service = service;
     if (search) filters.search = search;
+    if (sortBy) filters.sortBy = sortBy;
+    if (sortOrder) filters.sortOrder = sortOrder;
 
     // Build pagination
     const pagination: PaginationInput = { page, limit };
