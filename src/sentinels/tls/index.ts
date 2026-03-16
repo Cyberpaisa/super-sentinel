@@ -4,7 +4,7 @@ import { type SentinelResult } from '../types';
 
 const logger = createLogger('sentinel:tls');
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 6_000;
 
 export type TLSGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
 

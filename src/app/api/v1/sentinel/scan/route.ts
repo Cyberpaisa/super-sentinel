@@ -53,9 +53,8 @@ async function fetchOnChainRatings(
 
     if (!clients || clients.length === 0) return [];
 
-    // 3. Read feedback from each reviewer (index 1-based)
-    const ratings: RatingInput[] = [];
-    for (const reviewer of clients) {
+    // 3. Read feedback from each reviewer in parallel
+    const ratingPromises = clients.map(async (reviewer) => {
       try {
         const fb = await publicClient.readContract({
           address: reputationAddress,
@@ -66,11 +65,18 @@ async function fetchOnChainRatings(
 
         const score = Number(fb[0]);
         if (score >= 50) {
-          ratings.push({ reviewer, value: Math.min(score, 100), tag: fb[2] || undefined });
+          return { reviewer, value: Math.min(score, 100), tag: fb[2] || undefined };
         }
       } catch {
-        // Skip individual read errors
+        return null;
       }
+      return null;
+    });
+
+    const results = await Promise.all(ratingPromises);
+    const ratings: RatingInput[] = [];
+    for (const r of results) {
+      if (r) ratings.push(r);
     }
 
     log.info(

@@ -58,40 +58,47 @@ export async function checkHealth(
   const base = endpoint.replace(/\/+$/, '');
   const candidates = [`${base}/health`, `${base}/api/health`, endpoint];
 
+  logger.debug({ endpoint, candidates }, 'Starting parallel health check candidates');
+
+  // Run all candidates in parallel but with a slightly tighter individual timeout
+  // to ensure the overall check doesn't exceed 5-7 seconds easily.
+  const checkPromises = candidates.map(url => headCheck(url, Math.min(timeoutMs, 3500)));
+  const settled = await Promise.allSettled(checkPromises);
+
   let bestScore = 0;
   let bestStatus: number | null = null;
   let bestTime: number | null = null;
   let lastError: string | undefined;
 
-  for (const url of candidates) {
-    const result = await headCheck(url, timeoutMs);
+  settled.forEach((outcome, i) => {
+    if (outcome.status === 'fulfilled') {
+      const result = outcome.value;
+      if ('error' in result) {
+        lastError = result.error;
+        return;
+      }
 
-    if ('error' in result) {
-      lastError = result.error;
-      continue;
-    }
+      const { statusCode, responseTimeMs } = result;
+      let score: number;
+      if (statusCode >= 200 && statusCode < 300) {
+        score = 100;
+      } else if (statusCode >= 300 && statusCode < 400) {
+        score = 70;
+      } else if (statusCode >= 400 && statusCode < 500) {
+        score = 30;
+      } else {
+        score = 10;
+      }
 
-    const { statusCode, responseTimeMs } = result;
-    let score: number;
-    if (statusCode >= 200 && statusCode < 300) {
-      score = 100;
-    } else if (statusCode >= 300 && statusCode < 400) {
-      score = 70;
-    } else if (statusCode >= 400 && statusCode < 500) {
-      score = 30;
+      if (score > bestScore) {
+        bestScore = score;
+        bestStatus = statusCode;
+        bestTime = responseTimeMs;
+      }
     } else {
-      score = 10;
+      lastError = String(outcome.reason);
     }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestStatus = statusCode;
-      bestTime = responseTimeMs;
-    }
-
-    // 2xx is perfect — no need to try more paths
-    if (score === 100) break;
-  }
+  });
 
   if (bestStatus !== null) {
     logger.info({ endpoint, statusCode: bestStatus, responseTimeMs: bestTime, score: bestScore }, 'Health check completed');
