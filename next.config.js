@@ -3,11 +3,11 @@ const { withSentryConfig } = require('@sentry/nextjs');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  typedRoutes: true,
   images: {
     domains: [],
   },
   experimental: {
-    typedRoutes: true,
     instrumentationHook: true,
   },
   async headers() {
@@ -45,7 +45,6 @@ module.exports = withSentryConfig(nextConfig, {
 
   widenClientFileUpload: true,
   hideSourceMaps: true,
-  disableLogger: true,
 
   authToken: process.env.SENTRY_AUTH_TOKEN,
 });
