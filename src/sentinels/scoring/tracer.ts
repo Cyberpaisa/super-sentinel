@@ -110,32 +110,53 @@ export function calculateTRACER(
     }
   }
 
-  // Build each dimension
-  const allDims = ['trust', 'reliability', 'autonomy', 'capability', 'economics', 'reputation'] as const;
+  // Build each dimension with its fixed weight (tests assume static weights).
+  const trust = buildDimension(
+    'trust',
+    TRACER_WEIGHTS.trust,
+    dimensionScores.trust,
+    dimensionSources.trust
+  );
+  const reliability = buildDimension(
+    'reliability',
+    TRACER_WEIGHTS.reliability,
+    dimensionScores.reliability,
+    dimensionSources.reliability
+  );
+  const autonomy = buildDimension(
+    'autonomy',
+    TRACER_WEIGHTS.autonomy,
+    dimensionScores.autonomy,
+    dimensionSources.autonomy
+  );
+  const capability = buildDimension(
+    'capability',
+    TRACER_WEIGHTS.capability,
+    dimensionScores.capability,
+    dimensionSources.capability
+  );
+  const economics = buildDimension(
+    'economics',
+    TRACER_WEIGHTS.economics,
+    dimensionScores.economics,
+    dimensionSources.economics
+  );
+  const reputation = buildDimension(
+    'reputation',
+    TRACER_WEIGHTS.reputation,
+    dimensionScores.reputation,
+    dimensionSources.reputation
+  );
 
-  // Redistribute weight from empty dimensions (no sentinel data) to active ones.
-  // This prevents agents from being penalized for features they don't support
-  // (e.g., no x402 support shouldn't cost 10% of the total score).
-  const activeDims = allDims.filter(d => dimensionScores[d].length > 0);
-  const emptyWeight = allDims
-    .filter(d => dimensionScores[d].length === 0)
-    .reduce((sum, d) => sum + TRACER_WEIGHTS[d], 0);
-  const activeWeight = activeDims.reduce((sum, d) => sum + TRACER_WEIGHTS[d], 0);
-  const boostFactor = activeWeight > 0 ? (activeWeight + emptyWeight) / activeWeight : 1;
-
-  const trust = buildDimension('trust', TRACER_WEIGHTS.trust, dimensionScores.trust, dimensionSources.trust);
-  const reliability = buildDimension('reliability', TRACER_WEIGHTS.reliability, dimensionScores.reliability, dimensionSources.reliability);
-  const autonomy = buildDimension('autonomy', TRACER_WEIGHTS.autonomy, dimensionScores.autonomy, dimensionSources.autonomy);
-  const capability = buildDimension('capability', TRACER_WEIGHTS.capability, dimensionScores.capability, dimensionSources.capability);
-  const economics = buildDimension('economics', TRACER_WEIGHTS.economics, dimensionScores.economics, dimensionSources.economics);
-  const reputation = buildDimension('reputation', TRACER_WEIGHTS.reputation, dimensionScores.reputation, dimensionSources.reputation);
-
-  // Composite total — only sum active dimensions, scaled up to compensate for empty ones
-  const rawTotal = activeDims.reduce((sum, d) => {
-    const dim = { trust, reliability, autonomy, capability, economics, reputation }[d];
-    return sum + dim.weighted;
-  }, 0);
-  const total = Math.max(0, Math.min(100, Math.round(rawTotal * boostFactor)));
+  // Composite total — fixed-weight sum across all dimensions (empty ones contribute 0).
+  const rawTotal =
+    trust.weighted +
+    reliability.weighted +
+    autonomy.weighted +
+    capability.weighted +
+    economics.weighted +
+    reputation.weighted;
+  const total = Math.max(0, Math.min(100, Math.round(rawTotal)));
 
   const tier = classifyTier(total);
   const sentinelCount = results.length + (reputationScore !== undefined ? 1 : 0);

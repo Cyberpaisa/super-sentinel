@@ -2,7 +2,7 @@ import { prisma } from '@/lib/database/prisma';
 import { ContractNotFoundError, RPCError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
 import { type ChallengeType, type HeartbeatResult } from '@prisma/client';
-import { resolveAgentEndpoint } from './sentinels/resolve-endpoint';
+import { publicClient } from '@/lib/blockchain/client';
 
 const logger = createLogger('heartbeat-service');
 
@@ -49,70 +49,6 @@ export interface UptimeResult {
 }
 
 /**
- * Execute a heartbeat ping to an agent via HTTP fetch.
- * Uses AbortController with a 5000ms timeout for a real health check.
- *
- * @param agentAddress - Agent address (used to resolve endpoint)
- * @returns Heartbeat ping result
- */
-async function executeHeartbeatPing(agentAddress: string): Promise<HeartbeatPingResult> {
-  const endpoint = await resolveAgentEndpoint(agentAddress);
-
-  if (!endpoint) {
-    return {
-      success: false,
-      responseTimeMs: null,
-      result: 'FAIL',
-      errorMessage: 'No HTTP endpoint found in agent metadata',
-    };
-  }
-
-  const startTime = Date.now();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'HEAD',
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    const responseTimeMs = Date.now() - startTime;
-
-    if (response.ok) {
-      return { success: true, responseTimeMs, result: 'PASS' };
-    }
-
-    return {
-      success: false,
-      responseTimeMs,
-      result: 'FAIL',
-      errorMessage: `HTTP ${response.status} ${response.statusText}`,
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    const responseTimeMs = Date.now() - startTime;
-
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return {
-        success: false,
-        responseTimeMs: null,
-        result: 'TIMEOUT',
-        errorMessage: `Heartbeat timed out after ${HEARTBEAT_TIMEOUT_MS}ms`,
-      };
-    }
-
-    return {
-      success: false,
-      responseTimeMs,
-      result: 'FAIL',
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
  * Send a heartbeat to an agent and log the result
  *
  * @param agentAddress - Agent contract address
@@ -125,9 +61,13 @@ export async function sendHeartbeat(
   challengeType: ChallengeType = 'PING'
 ): Promise<HeartbeatPingResult> {
   const normalizedAddress = agentAddress.toLowerCase();
+  const startTime = Date.now();
 
   try {
-    logger.info({ agentAddress: normalizedAddress, challengeType }, 'Sending heartbeat');
+    logger.info(
+      { agentAddress: normalizedAddress, challengeType },
+      'Sending heartbeat'
+    );
 
     // Verify agent exists in database
     const agent = await prisma.agent.findUnique({
@@ -135,38 +75,127 @@ export async function sendHeartbeat(
     });
 
     if (!agent) {
-      logger.warn({ agentAddress: normalizedAddress }, 'Agent not found in database, skipping heartbeat');
+      logger.warn(
+        { agentAddress: normalizedAddress },
+        'Agent not found in database, skipping heartbeat'
+      );
       throw new ContractNotFoundError(agentAddress);
     }
 
-    // Execute the heartbeat ping via HTTP
-    const pingResult = await executeHeartbeatPing(normalizedAddress);
+    // Race on-chain getCode against a timeout to derive PASS/FAIL/TIMEOUT
+    let timeoutHandle: NodeJS.Timeout | undefined;
+    let didTimeout = false;
 
-    // Log the result to database
+    const codePromise = publicClient.getCode({
+      address: normalizedAddress as `0x${string}`,
+    });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        didTimeout = true;
+        reject(new Error('TIMEOUT'));
+      }, HEARTBEAT_TIMEOUT_MS);
+    });
+
+    let bytecode: string;
+    try {
+      bytecode = (await Promise.race([codePromise, timeoutPromise])) as string;
+    } catch (error) {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+
+      const baseData = {
+        agentAddress: normalizedAddress,
+        challengeType,
+      } as const;
+
+      if (didTimeout) {
+        const timeoutMessage = `Heartbeat timed out after ${HEARTBEAT_TIMEOUT_MS}ms`;
+
+        await prisma.heartbeatLog.create({
+          data: {
+            ...baseData,
+            responseTimeMs: null,
+            result: 'TIMEOUT',
+            errorMessage: timeoutMessage,
+          },
+        });
+
+        return {
+          success: false,
+          responseTimeMs: null,
+          result: 'TIMEOUT',
+          errorMessage: timeoutMessage,
+        };
+      }
+
+      const message =
+        error instanceof Error ? error.message : 'Unknown error';
+      const responseTimeMs = Date.now() - startTime;
+
+      await prisma.heartbeatLog.create({
+        data: {
+          ...baseData,
+          responseTimeMs,
+          result: 'FAIL',
+          errorMessage: message,
+        },
+      });
+
+      return {
+        success: false,
+        responseTimeMs,
+        result: 'FAIL',
+        errorMessage: message,
+      };
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    }
+
+    const responseTimeMs = Date.now() - startTime;
+    let result: HeartbeatResult = 'PASS';
+    let errorMessage: string | undefined;
+
+    if (!bytecode || bytecode === '0x') {
+      result = 'FAIL';
+      errorMessage = 'Contract no longer exists';
+    }
+
     await prisma.heartbeatLog.create({
       data: {
         agentAddress: normalizedAddress,
         challengeType,
-        responseTimeMs: pingResult.responseTimeMs,
-        result: pingResult.result,
-        errorMessage: pingResult.errorMessage,
+        responseTimeMs,
+        result,
+        errorMessage,
       },
     });
 
-    logger.info({
-      agentAddress: normalizedAddress,
-      result: pingResult.result,
-      responseTimeMs: pingResult.responseTimeMs,
-    }, 'Heartbeat completed');
+    logger.info(
+      {
+        agentAddress: normalizedAddress,
+        result,
+        responseTimeMs,
+      },
+      'Heartbeat completed'
+    );
 
-    return pingResult;
+    return {
+      success: result === 'PASS',
+      responseTimeMs,
+      result,
+      errorMessage,
+    };
   } catch (error) {
     if (error instanceof ContractNotFoundError) {
       throw error;
     }
 
     logger.error({ agentAddress: normalizedAddress, error }, 'Heartbeat failed');
-    throw new RPCError(`Heartbeat failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new RPCError(
+      `Heartbeat failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 

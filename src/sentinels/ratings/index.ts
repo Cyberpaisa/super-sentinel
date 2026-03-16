@@ -24,11 +24,13 @@ export interface RatingsData {
 /**
  * Ratings sentinel — evaluates reputation based on community ratings.
  *
- * Score calculation:
- *  - 0 ratings         -> score = 0, passed = false
- *  - 1 rating          -> base 50 + avg normalized to 0-30
- *  - 2+ ratings        -> base 70 + avg normalized to 0-30
- *  - Capped at 100
+ * Score calculation (kept in sync with tests):
+ *  - 0 ratings              -> score = 0, passed = false
+ *  - 1–2 ratings            -> base 30 + avg(normalized 0‑30)
+ *  - 3–5 ratings            -> base 50 + avg(normalized 0‑30)
+ *  - 6+ ratings             -> base 70 + avg(normalized 0‑30)
+ *  - Negative values clamped to 0 before averaging
+ *  - Score capped at 100
  *
  * passed = score >= 50
  */
@@ -46,21 +48,27 @@ export async function checkRatings(
   }
 
   const uniqueReviewers = new Set(ratings.map((r) => r.reviewer)).size;
-  const averageValue = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
+
+  // Clamp each rating value into [0, 100] before averaging
+  const clampedValues = ratings.map((r) => {
+    const v = Number.isFinite(r.value) ? r.value : 0;
+    return Math.min(Math.max(v, 0), 100);
+  });
+  const averageValue =
+    clampedValues.reduce((sum, v) => sum + v, 0) / clampedValues.length;
 
   // Determine base score from rating count
-  // Thresholds tuned for early on-chain reputation (unique reviewers are scarce)
   let base: number;
-  if (ratings.length === 1) {
-    base = 50;
+  if (ratings.length <= 2) {
+    base = 30;
   } else if (ratings.length <= 5) {
-    base = 70;
+    base = 50;
   } else {
     base = 70;
   }
 
   // Normalize average value (0-100) to a 0-30 bonus
-  const bonus = Math.round((Math.min(Math.max(averageValue, 0), 100) / 100) * 30);
+  const bonus = Math.round((averageValue / 100) * 30);
   const score = Math.min(base + bonus, 100);
   const passed = score >= 50;
 

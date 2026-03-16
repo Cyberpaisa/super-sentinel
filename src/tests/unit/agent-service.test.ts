@@ -101,6 +101,10 @@ describe('getAgent', () => {
     expect(prismaMock.agent.findUnique).toHaveBeenCalledWith({
       where: { address: MOCK_ADDRESS.toLowerCase() },
       include: {
+        tracerScores: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
         trustScores: {
           orderBy: { calculatedAt: 'desc' },
           take: 1,

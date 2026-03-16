@@ -145,6 +145,8 @@ describe('createRatingSchema', () => {
     score: 4,
     signature: '0xsignature',
     userAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+    nonce: '1',
+    timestamp: 1710000000,
   };
 
   it('accepts valid input', () => {

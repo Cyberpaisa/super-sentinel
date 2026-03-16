@@ -89,6 +89,8 @@ export async function GET(
     const averageRating = ratingCount > 0 ? ratingSum / ratingCount : 0;
 
     // Build response
+    const tracerScores = (agent as any).tracerScores ?? [];
+    const latestTracer = tracerScores[0];
     const response = {
       // Basic info
       address: agent.address,
@@ -146,20 +148,20 @@ export async function GET(
       },
 
       // TRACER score (latest stored snapshot + history)
-      tracerScore: agent.tracerScores[0]
+      tracerScore: latestTracer
         ? {
-          total: agent.tracerScores[0].totalScore,
-          tier: agent.tracerScores[0].tier,
+          total: latestTracer.totalScore,
+          tier: latestTracer.tier,
           dimensions: {
-            trust: agent.tracerScores[0].trust,
-            reliability: agent.tracerScores[0].reliability,
-            autonomy: agent.tracerScores[0].autonomy,
-            capability: agent.tracerScores[0].capability,
-            economics: agent.tracerScores[0].economics,
-            reputation: agent.tracerScores[0].reputation,
+            trust: latestTracer.trust,
+            reliability: latestTracer.reliability,
+            autonomy: latestTracer.autonomy,
+            capability: latestTracer.capability,
+            economics: latestTracer.economics,
+            reputation: latestTracer.reputation,
           },
-          updatedAt: agent.tracerScores[0].updatedAt.toISOString(),
-          history: agent.tracerScores.map((s) => ({
+          updatedAt: latestTracer.updatedAt.toISOString(),
+          history: tracerScores.map((s: any) => ({
             id: s.id,
             total: s.totalScore,
             tier: s.tier,
