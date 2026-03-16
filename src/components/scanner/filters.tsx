@@ -1,7 +1,6 @@
 'use client';
 
 import { RotateCcw } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils/index';
 
 export interface FilterValues {
@@ -24,60 +23,6 @@ const SERVICES = [
   { value: 'web',  label: 'web',  className: 'bg-cyan-900/20 text-cyan-400 border-cyan-500/30' },
   { value: 'OASF', label: 'OASF', className: 'bg-purple-900/20 text-purple-400 border-purple-500/30' },
 ];
-
-const STATUSES = [
-  { value: 'ALL',       label: 'All statuses' },
-  { value: 'VERIFIED',  label: 'Verified'     },
-  { value: 'PENDING',   label: 'Pending'      },
-  { value: 'FLAGGED',   label: 'Flagged'      },
-  { value: 'SUSPENDED', label: 'Suspended'    },
-];
-
-const SORT_FIELDS = [
-  { value: 'trust_score', label: 'TRACER score' },
-  { value: 'created_at',  label: 'Date added'  },
-  { value: 'name',        label: 'Name'         },
-];
-
-const SORT_ORDERS = [
-  { value: 'desc', label: 'High → Low' },
-  { value: 'asc',  label: 'Low → High' },
-];
-
-// ---- tiny select --------------------------------------------------------
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">{label}</p>
-      <div className="grid grid-cols-1 gap-1">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              'w-full rounded-md px-3 py-1.5 text-left text-xs font-medium transition-all duration-100',
-              value === opt.value
-                ? 'bg-[rgba(74,222,128,0.1)] text-primary border border-[rgba(74,222,128,0.25)]'
-                : 'text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] hover:text-white border border-transparent',
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ---- main component -----------------------------------------------------
 export function Filters({ values, onChange }: FiltersProps) {

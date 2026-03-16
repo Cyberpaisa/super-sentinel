@@ -3,7 +3,6 @@
 import { Activity, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { type Agent } from '@/hooks/use-agents';
 import { Spinner } from '@/components/shared/spinner';
-import { cn } from '@/lib/utils';
 
 interface RecentActivityProps {
   agents: Agent[];

@@ -14,8 +14,6 @@ import { useAgent, type AgentDetail } from '@/hooks/use-agent';
 import { useSentinelScan } from '@/hooks/use-sentinel-scan';
 import { cn } from '@/lib/utils/index';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
