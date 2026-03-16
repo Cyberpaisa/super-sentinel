@@ -28,24 +28,55 @@ export async function GET(request: NextRequest) {
       return successResponse({});
     }
 
-    // Fetch all trust_score snapshots for these agents (ordered ASC = left→right on chart)
-    const rows = await prisma.trustScore.findMany({
-      where:   { agentId: { in: addresses } },
-      select:  { agentId: true, overallScore: true, calculatedAt: true },
-      orderBy: { calculatedAt: 'asc' },
-    });
+    // Fetch both legacy trust_score snapshots and new TRACER records
+    const [legacyScores, tracerScores] = await Promise.all([
+      prisma.trustScore.findMany({
+        where: { agentId: { in: addresses } },
+        select: { agentId: true, overallScore: true, calculatedAt: true },
+        orderBy: { calculatedAt: 'asc' },
+      }),
+      prisma.tRACERScoreRecord.findMany({
+        where: { agentAddress: { in: addresses } },
+        select: { agentAddress: true, totalScore: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
 
-    // Group by address, keep only last 10 snapshots, convert 0–1 float → 0–100 integer
-    const data: Record<string, { v: number }[]> = {};
-    for (const row of rows) {
+    // Merge and group by address
+    const data: Record<string, { v: number; t: number }[]> = {};
+
+    // Process legacy scores (converting 0-1 float to 0-100)
+    for (const row of legacyScores) {
       if (!data[row.agentId]) data[row.agentId] = [];
-      data[row.agentId].push({ v: Math.round(row.overallScore * 100) });
-    }
-    for (const addr of Object.keys(data)) {
-      if (data[addr].length > 10) data[addr] = data[addr].slice(-10);
+      data[row.agentId].push({
+        v: Math.round(row.overallScore * 100),
+        t: row.calculatedAt.getTime()
+      });
     }
 
-    return successResponse(data);
+    // Process new TRACER scores
+    for (const row of tracerScores) {
+      if (!data[row.agentAddress]) data[row.agentAddress] = [];
+      data[row.agentAddress].push({
+        v: row.totalScore,
+        t: row.createdAt.getTime()
+      });
+    }
+
+    // Sort by timestamp and keep last 10, then remove timestamp for final response
+    const finalData: Record<string, { v: number }[]> = {};
+    for (const addr of Object.keys(data)) {
+      const sorted = data[addr]
+        .sort((a, b) => a.t - b.t)
+        .slice(-10)
+        .map(item => ({ v: item.v }));
+
+      if (sorted.length > 0) {
+        finalData[addr] = sorted;
+      }
+    }
+
+    return successResponse(finalData);
   } catch (error) {
     return handleError(error);
   }

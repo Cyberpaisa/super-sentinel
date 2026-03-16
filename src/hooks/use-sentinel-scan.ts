@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { OrchestratorResult } from '@/sentinels/types';
 import type { TRACERScore } from '@/sentinels/scoring/types';
 
@@ -57,8 +57,16 @@ async function scanAgent(address: string): Promise<SentinelScanResult> {
  * @returns scan result, loading state, error, and trigger function
  */
 export function useSentinelScan() {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation({
     mutationFn: scanAgent,
+    onSuccess: (data) => {
+      // Invalidate the specific agent query to show new score on profile
+      queryClient.invalidateQueries({ queryKey: ['agent', data.address] });
+      // Invalidate the agents list to show new score in the scanner table
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    },
   });
 
   return {

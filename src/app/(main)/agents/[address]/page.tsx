@@ -13,6 +13,17 @@ import SentinelResults from '@/components/sentinel-results';
 import { useAgent, type AgentDetail } from '@/hooks/use-agent';
 import { useSentinelScan } from '@/hooks/use-sentinel-scan';
 import { cn } from '@/lib/utils/index';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area 
+} from 'recharts';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -208,6 +219,7 @@ export default function AgentProfilePage() {
   const vol24hDisplay = vol24h ? `${parseFloat(vol24h.volumeAvax).toFixed(1)} AVAX` : '—';
 
   const snapshotStats = [
+    { label: 'TRACER',       value: agent.tracerScore ? `${agent.tracerScore.total}/100` : '—' },
     { label: 'UPTIME',       value: `${agent.uptime.percentage.toFixed(0)}%` },
     { label: 'VOLUME (24H)', value: vol24hDisplay },
     { label: 'PROXY',        value: agent.proxy.detected ? formatEnumValue(agent.proxy.type) : 'None' },
@@ -587,22 +599,80 @@ export default function AgentProfilePage() {
                 </div>
               </div>
 
-              {/* Historical Records */}
+              {/* Score Performance Chart (New) */}
               {agent.tracerScore?.history && agent.tracerScore.history.length > 1 && (
                 <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
-                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">Historical Records</p>
-                  <div className="space-y-3">
+                  <p className="mb-6 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">Trust Performance Trend</p>
+                  <div className="h-[180px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart 
+                        data={[...agent.tracerScore.history].reverse().map(h => ({ 
+                          score: h.total, 
+                          date: new Date(h.createdAt).toLocaleDateString() 
+                        }))}
+                      >
+                        <defs>
+                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#60A5FA" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                        <XAxis 
+                          dataKey="date" 
+                          hide 
+                        />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          hide 
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#0F172A', 
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            fontSize: '10px'
+                          }}
+                          itemStyle={{ color: '#60A5FA', fontWeight: 'bold' }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="score" 
+                          stroke="#60A5FA" 
+                          fillOpacity={1} 
+                          fill="url(#colorScore)" 
+                          strokeWidth={2}
+                          animationDuration={1500}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Historical Records List (Refined) */}
+              {agent.tracerScore?.history && agent.tracerScore.history.length > 0 && (
+                <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">Analysis History</p>
+                  <div className="divide-y divide-[rgba(255,255,255,0.04)]">
                     {agent.tracerScore.history.map((record) => (
-                      <div key={record.id} className="flex items-center justify-between text-xs">
-                        <span className="text-[#64748B]">{formatEventDate(record.createdAt)}</span>
-                        <div className="flex items-center gap-3">
+                      <div key={record.id} className="flex items-center justify-between py-2 text-xs">
+                        <div className="flex flex-col">
+                          <span className="text-white font-medium">{formatEventDate(record.createdAt)}</span>
+                          <span className="text-[10px] text-[#475569] uppercase tracking-tighter">Sentinel Baseline</span>
+                        </div>
+                        <div className="flex items-center gap-4">
                           <span
-                            className="text-[10px] font-bold uppercase tracking-tight"
-                            style={{ color: record.tier === 'VERIFIED' ? '#60A5FA' : record.tier === 'PASS' ? '#22D3EE' : record.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185' }}
+                            className="rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ring-1 ring-inset"
+                            style={{ 
+                              color: record.tier === 'VERIFIED' ? '#60A5FA' : record.tier === 'PASS' ? '#22D3EE' : record.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185',
+                              backgroundColor: `${record.tier === 'VERIFIED' ? '#60A5FA' : record.tier === 'PASS' ? '#22D3EE' : record.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185'}15`,
+                              borderColor: `${record.tier === 'VERIFIED' ? '#60A5FA' : record.tier === 'PASS' ? '#22D3EE' : record.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185'}30`
+                            }}
                           >
                             {record.tier}
                           </span>
-                          <span className="font-data font-bold text-white w-6 text-right">{record.total}</span>
+                          <span className="font-data font-bold text-white w-7 text-right text-sm">{record.total}</span>
                         </div>
                       </div>
                     ))}
