@@ -1,4 +1,4 @@
-import { type Prisma, type Agent, type AgentType, type AgentStatus, type ProxyType } from '@prisma/client';
+import { Prisma, type Agent, type AgentType, type AgentStatus, type ProxyType } from '@prisma/client';
 import { prisma } from '@/lib/database/prisma';
 import { NotFoundError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
@@ -153,8 +153,10 @@ export async function getAgents(
 
     logger.debug({ filters, page, limit }, 'Fetching agents list');
 
-    // Build where clause
-    const where: Prisma.AgentWhereInput = {};
+    // Build where clause — only return agents that have metadata populated
+    const where: Prisma.AgentWhereInput = {
+      metadata: { not: Prisma.JsonNull },
+    };
 
     if (type) {
       where.type = type;

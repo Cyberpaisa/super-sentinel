@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, handleError } from '@/lib/utils/api-helpers';
 import { createLogger } from '@/lib/utils/logger';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/database/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ const logger = createLogger('api-agents-stats');
 /**
  * GET /api/v1/agents/stats
  *
- * Get aggregate statistics about agents
+ * Get aggregate statistics about agents (only agents with metadata)
  *
  * Returns:
  * - total: Total number of agents
@@ -26,34 +27,40 @@ export async function GET(_request: NextRequest) {
     // Calculate 24h ago
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    // Base filter: only agents that have metadata
+    const hasMetadata = { metadata: { not: Prisma.JsonNull } };
+
     // Run all queries in parallel
     const [total, verified, active24h, byStatus, byType] = await Promise.all([
-      // Total agents
-      prisma.agent.count(),
+      // Total agents with metadata
+      prisma.agent.count({ where: hasMetadata }),
 
-      // Verified agents
+      // Verified agents with metadata
       prisma.agent.count({
-        where: { status: 'VERIFIED' },
+        where: { ...hasMetadata, status: 'VERIFIED' },
       }),
 
-      // Active in last 24h (updated_at)
+      // Active in last 24h (updated_at) with metadata
       prisma.agent.count({
         where: {
+          ...hasMetadata,
           updated_at: {
             gte: twentyFourHoursAgo,
           },
         },
       }),
 
-      // Breakdown by status
+      // Breakdown by status (only agents with metadata)
       prisma.agent.groupBy({
         by: ['status'],
+        where: hasMetadata,
         _count: true,
       }),
 
-      // Breakdown by type
+      // Breakdown by type (only agents with metadata)
       prisma.agent.groupBy({
         by: ['type'],
+        where: hasMetadata,
         _count: true,
       }),
     ]);
