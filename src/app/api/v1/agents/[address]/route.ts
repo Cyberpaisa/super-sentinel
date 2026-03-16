@@ -89,7 +89,7 @@ export async function GET(
     const averageRating = ratingCount > 0 ? ratingSum / ratingCount : 0;
 
     // Build response
-    const tracerScores = (agent as any).tracerScores ?? [];
+    const tracerScores = agent.tracerScores || [];
     const latestTracer = tracerScores[0];
     const response = {
       // Basic info
@@ -161,7 +161,7 @@ export async function GET(
             reputation: latestTracer.reputation,
           },
           updatedAt: latestTracer.updatedAt.toISOString(),
-          history: tracerScores.map((s: any) => ({
+          history: tracerScores.map((s) => ({
             id: s.id,
             total: s.totalScore,
             tier: s.tier,

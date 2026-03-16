@@ -171,7 +171,7 @@ export async function getAgents(
             {
               metadata: {
                 path: ['services'],
-                not: { equals: [] as any },
+                not: { equals: [] as Prisma.InputJsonValue },
               },
             },
             // OR has direct scannable URL fields

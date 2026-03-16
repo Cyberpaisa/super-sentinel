@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest) {
         { metadata: { not: Prisma.JsonNull } },
         {
           OR: [
-            { metadata: { path: ['services'], not: { equals: [] as any } } },
+            { metadata: { path: ['services'], not: { equals: [] as Prisma.InputJsonValue } } },
             { metadata: { path: ['url'], not: Prisma.JsonNull } },
             { metadata: { path: ['endpoint'], not: Prisma.JsonNull } },
             { metadata: { path: ['external_url'], not: Prisma.JsonNull } },
