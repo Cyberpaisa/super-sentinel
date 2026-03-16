@@ -2,6 +2,8 @@ import { Prisma, type Agent, type AgentType, type AgentStatus, type ProxyType } 
 import { prisma } from '@/lib/database/prisma';
 import { NotFoundError } from '@/lib/utils/errors';
 import { createLogger } from '@/lib/utils/logger';
+import { type TRACERScore } from '@/sentinels/scoring/types';
+import { type SentinelResult } from '@/sentinels/types';
 
 const logger = createLogger('agent-service');
 
@@ -116,6 +118,10 @@ export async function getAgent(address: string): Promise<Agent | null> {
     const agent = await prisma.agent.findUnique({
       where: { address: address.toLowerCase() },
       include: {
+        tracerScores: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
         trustScores: {
           orderBy: { calculatedAt: 'desc' },
           take: 1,
@@ -292,6 +298,58 @@ export async function agentExists(address: string): Promise<boolean> {
     return count > 0;
   } catch (error) {
     logger.error({ address, error }, 'Failed to check agent existence');
+    throw error;
+  }
+}
+
+/**
+ * Record a TRACER score snapshot and update the agent's overall trust score.
+ *
+ * @param address - Agent contract address
+ * @param score - Calculated TRACER score
+ * @param results - Raw sentinel results for auditability
+ */
+export async function recordTracerScore(
+  address: string,
+  score: TRACERScore,
+  results: SentinelResult[]
+): Promise<void> {
+  try {
+    const normalizedAddress = address.toLowerCase();
+
+    logger.info({ address: normalizedAddress, score: score.total }, 'Recording TRACER score');
+
+    await prisma.$transaction([
+      // 1. Save the historical record
+      prisma.tRACERScoreRecord.create({
+        data: {
+          agentAddress: normalizedAddress,
+          totalScore: score.total,
+          tier: score.tier,
+          trust: score.dimensions.trust.score,
+          reliability: score.dimensions.reliability.score,
+          autonomy: score.dimensions.autonomy.score,
+          capability: score.dimensions.capability.score,
+          economics: score.dimensions.economics.score,
+          reputation: score.dimensions.reputation.score,
+          sentinelResults: results as unknown as Prisma.InputJsonValue,
+        },
+      }),
+
+      // 2. Update the agent's main trust_score for quick access and ranking
+      prisma.agent.update({
+        where: { address: normalizedAddress },
+        data: {
+          trust_score: score.total,
+          // If the score is high enough, we can also auto-verify or update status
+          ...(score.tier === 'VERIFIED' && { status: 'VERIFIED' as AgentStatus }),
+        },
+      }),
+    ]);
+
+    logger.debug({ address: normalizedAddress }, 'TRACER score recorded successfully');
+  } catch (error) {
+    logger.error({ address, error }, 'Failed to record TRACER score');
     throw error;
   }
 }

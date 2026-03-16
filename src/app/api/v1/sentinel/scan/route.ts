@@ -10,6 +10,7 @@ import { publicClient } from '@/lib/blockchain/client';
 import { REPUTATION_REGISTRY_ABI } from '@/lib/blockchain/abis/reputation-registry';
 import { ERC8004_CONTRACTS } from '@/config/contracts';
 import { isMainnet } from '@/lib/blockchain/client';
+import { recordTracerScore } from '@/services/agent-service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -175,6 +176,9 @@ async function scanHandler(request: NextRequest) {
       tier: tracerScore.tier,
       sentinels: orchestratorResult.summary,
     }, 'Sentinel scan completed');
+
+    // Record score in database for history and trust score visibility
+    await recordTracerScore(normalizedAddress, tracerScore, orchestratorResult.results);
 
     // Record scan for heartbeat tracking
     recordScan(normalizedAddress);

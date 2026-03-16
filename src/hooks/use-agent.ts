@@ -111,6 +111,20 @@ export interface AgentDetail {
       reputation: number;
     };
     updatedAt: string;
+    history: Array<{
+      id: string;
+      total: number;
+      tier: string;
+      dimensions: {
+        trust: number;
+        reliability: number;
+        autonomy: number;
+        capability: number;
+        economics: number;
+        reputation: number;
+      };
+      createdAt: string;
+    }>;
   } | null;
 }
 

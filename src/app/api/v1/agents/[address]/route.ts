@@ -58,7 +58,7 @@ export async function GET(
         },
         tracerScores: {
           orderBy: { createdAt: 'desc' },
-          take: 1,
+          take: 10,
         },
       },
     });
@@ -145,21 +145,35 @@ export async function GET(
         })),
       },
 
-      // TRACER score (latest stored snapshot)
+      // TRACER score (latest stored snapshot + history)
       tracerScore: agent.tracerScores[0]
         ? {
-            total: agent.tracerScores[0].totalScore,
-            tier: agent.tracerScores[0].tier,
+          total: agent.tracerScores[0].totalScore,
+          tier: agent.tracerScores[0].tier,
+          dimensions: {
+            trust: agent.tracerScores[0].trust,
+            reliability: agent.tracerScores[0].reliability,
+            autonomy: agent.tracerScores[0].autonomy,
+            capability: agent.tracerScores[0].capability,
+            economics: agent.tracerScores[0].economics,
+            reputation: agent.tracerScores[0].reputation,
+          },
+          updatedAt: agent.tracerScores[0].updatedAt.toISOString(),
+          history: agent.tracerScores.map((s) => ({
+            id: s.id,
+            total: s.totalScore,
+            tier: s.tier,
             dimensions: {
-              trust: agent.tracerScores[0].trust,
-              reliability: agent.tracerScores[0].reliability,
-              autonomy: agent.tracerScores[0].autonomy,
-              capability: agent.tracerScores[0].capability,
-              economics: agent.tracerScores[0].economics,
-              reputation: agent.tracerScores[0].reputation,
+              trust: s.trust,
+              reliability: s.reliability,
+              autonomy: s.autonomy,
+              capability: s.capability,
+              economics: s.economics,
+              reputation: s.reputation,
             },
-            updatedAt: agent.tracerScores[0].updatedAt.toISOString(),
-          }
+            createdAt: s.createdAt.toISOString(),
+          })),
+        }
         : null,
     };
 

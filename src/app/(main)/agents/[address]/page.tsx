@@ -554,36 +554,61 @@ export default function AgentProfilePage() {
 
           {/* TRACER Dimensions */}
           {tracerDimensions ? (
-            <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
-              <div className="mb-5 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">TRACER Dimensions</p>
-                <p className="font-data text-sm font-bold text-white">
-                  {agent.tracerScore!.total}
-                  <span className="ml-0.5 text-xs font-normal text-[#475569]">/100</span>
-                </p>
-              </div>
-              <div className="space-y-4">
-                {tracerDimensions.map(({ label, score, weight }) => {
-                  const barColor = score >= 80 ? '#60A5FA' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FBBF24' : '#FB7185';
-                  return (
-                    <div key={label}>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs text-[#94A3B8]">{label}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-[#475569]">{Math.round(weight * 100)}%</span>
-                          <span className="font-data w-7 text-right text-xs font-bold text-white">{score}</span>
+            <div className="flex flex-col gap-4">
+              <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+                <div className="mb-5 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">TRACER Dimensions</p>
+                  <p className="font-data text-sm font-bold text-white">
+                    {agent.tracerScore!.total}
+                    <span className="ml-0.5 text-xs font-normal text-[#475569]">/100</span>
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {tracerDimensions.map(({ label, score, weight }) => {
+                    const barColor = score >= 80 ? '#60A5FA' : score >= 60 ? '#22D3EE' : score >= 40 ? '#FBBF24' : '#FB7185';
+                    return (
+                      <div key={label}>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-xs text-[#94A3B8]">{label}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-[#475569]">{Math.round(weight * 100)}%</span>
+                            <span className="font-data w-7 text-right text-xs font-bold text-white">{score}</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                            style={{ width: `${score}%`, backgroundColor: barColor }}
+                          />
                         </div>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
-                          style={{ width: `${score}%`, backgroundColor: barColor }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Historical Records */}
+              {agent.tracerScore?.history && agent.tracerScore.history.length > 1 && (
+                <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
+                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-[#475569]">Historical Records</p>
+                  <div className="space-y-3">
+                    {agent.tracerScore.history.map((record) => (
+                      <div key={record.id} className="flex items-center justify-between text-xs">
+                        <span className="text-[#64748B]">{formatEventDate(record.createdAt)}</span>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-tight"
+                            style={{ color: record.tier === 'VERIFIED' ? '#60A5FA' : record.tier === 'PASS' ? '#22D3EE' : record.tier === 'PARTIAL' ? '#FBBF24' : '#FB7185' }}
+                          >
+                            {record.tier}
+                          </span>
+                          <span className="font-data font-bold text-white w-6 text-right">{record.total}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-5">
