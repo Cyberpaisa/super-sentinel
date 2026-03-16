@@ -161,9 +161,32 @@ export async function getAgents(
 
     logger.debug({ filters, page, limit }, 'Fetching agents list');
 
-    // Build where clause — only return agents that have metadata populated
+    // Build where clause — only return agents that have metadata AND scannable signals
     const where: Prisma.AgentWhereInput = {
-      metadata: { not: Prisma.JsonNull },
+      AND: [
+        { metadata: { not: Prisma.JsonNull } },
+        {
+          OR: [
+            // Has services array and it's not empty
+            {
+              metadata: {
+                path: ['services'],
+                not: { equals: [] as any },
+              },
+            },
+            // OR has direct scannable URL fields
+            { metadata: { path: ['url'], not: Prisma.JsonNull } },
+            { metadata: { path: ['endpoint'], not: Prisma.JsonNull } },
+            { metadata: { path: ['external_url'], not: Prisma.JsonNull } },
+            // OR has a token_uri that looks like an endpoint
+            {
+              token_uri: {
+                startsWith: 'http',
+              }
+            }
+          ]
+        }
+      ]
     };
 
     if (type) {

@@ -27,23 +27,36 @@ export async function GET(_request: NextRequest) {
     // Calculate 24h ago
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Base filter: only agents that have metadata
-    const hasMetadata = { metadata: { not: Prisma.JsonNull } };
+    // Base filter: only agents that have metadata AND scannable signals
+    const scannableFilter: Prisma.AgentWhereInput = {
+      AND: [
+        { metadata: { not: Prisma.JsonNull } },
+        {
+          OR: [
+            { metadata: { path: ['services'], not: { equals: [] as any } } },
+            { metadata: { path: ['url'], not: Prisma.JsonNull } },
+            { metadata: { path: ['endpoint'], not: Prisma.JsonNull } },
+            { metadata: { path: ['external_url'], not: Prisma.JsonNull } },
+            { token_uri: { startsWith: 'http' } }
+          ]
+        }
+      ]
+    };
 
     // Run all queries in parallel
     const [total, verified, active24h, byStatus, byType] = await Promise.all([
       // Total agents with metadata
-      prisma.agent.count({ where: hasMetadata }),
+      prisma.agent.count({ where: scannableFilter }),
 
       // Verified agents with metadata
       prisma.agent.count({
-        where: { ...hasMetadata, status: 'VERIFIED' },
+        where: { ...scannableFilter, status: 'VERIFIED' },
       }),
 
       // Active in last 24h (updated_at) with metadata
       prisma.agent.count({
         where: {
-          ...hasMetadata,
+          ...scannableFilter,
           updated_at: {
             gte: twentyFourHoursAgo,
           },
@@ -53,14 +66,14 @@ export async function GET(_request: NextRequest) {
       // Breakdown by status (only agents with metadata)
       prisma.agent.groupBy({
         by: ['status'],
-        where: hasMetadata,
+        where: scannableFilter,
         _count: true,
       }),
 
       // Breakdown by type (only agents with metadata)
       prisma.agent.groupBy({
         by: ['type'],
-        where: hasMetadata,
+        where: scannableFilter,
         _count: true,
       }),
     ]);
