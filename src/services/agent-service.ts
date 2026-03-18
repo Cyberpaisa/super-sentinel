@@ -167,11 +167,11 @@ export async function getAgents(
         { metadata: { not: Prisma.JsonNull } },
         {
           OR: [
-            // Has services array and it's not empty
+            // Has services array and it's not empty (must have element at index 0)
             {
               metadata: {
-                path: ['services'],
-                not: { equals: [] as Prisma.InputJsonValue },
+                path: ['services', '0'],
+                not: Prisma.JsonNull,
               },
             },
             // OR has direct scannable URL fields
