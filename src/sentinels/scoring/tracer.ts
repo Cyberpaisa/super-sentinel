@@ -148,15 +148,21 @@ export function calculateTRACER(
     dimensionSources.reputation
   );
 
-  // Composite total — fixed-weight sum across all dimensions (empty ones contribute 0).
-  const rawTotal =
-    trust.weighted +
-    reliability.weighted +
-    autonomy.weighted +
-    capability.weighted +
-    economics.weighted +
-    reputation.weighted;
-  const total = Math.max(0, Math.min(100, Math.round(rawTotal)));
+  // Composite total — dynamically weighted sum based on dimensions that actually have data.
+  const allDimensions = [trust, reliability, autonomy, capability, economics, reputation];
+  let totalActiveWeight = 0;
+  let rawTotal = 0;
+
+  for (const dim of allDimensions) {
+    if (dim.sources.length > 0) {
+      totalActiveWeight += dim.weight;
+      rawTotal += dim.weighted;
+    }
+  }
+
+  const total = totalActiveWeight > 0
+    ? Math.max(0, Math.min(100, Math.round(rawTotal / totalActiveWeight)))
+    : 0;
 
   const tier = classifyTier(total);
   const sentinelCount = results.length + (reputationScore !== undefined ? 1 : 0);

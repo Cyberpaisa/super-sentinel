@@ -259,8 +259,8 @@ describe('TRACER Edge Cases', () => {
     expect(tracer.sentinelCount).toBe(2);
   });
 
-  it('should not exceed 65 without capability and reputation', () => {
-    // Max possible without capability and reputation sentinels
+  it('should calculate dynamic score without capability and reputation', () => {
+    // Tests the normalization logic when an agent lacks Capability and Reputation
     const results = [
       makeSentinel('tls', 100),
       makeSentinel('proxy', 100),
@@ -271,10 +271,9 @@ describe('TRACER Edge Cases', () => {
       makeSentinel('x402', 100),
     ];
     const tracer = calculateTRACER(results);
-    // trust=100*0.20 + reliability=100*0.20 + autonomy=100*0.15 + economics=100*0.10 = 65
-    expect(tracer.total).toBeLessThanOrEqual(65);
-    expect(tracer.tier).not.toBe('VERIFIED');
-    expect(tracer.tier).not.toBe('PASS');
+    // Active weight = 0.65. Raw total = 65. Normalized = 65 / 0.65 = 100.
+    expect(tracer.total).toBe(100);
+    expect(tracer.tier).toBe('VERIFIED');
   });
 
   it('should produce exactly 60 when all sentinels score 60 (gaming test)', () => {
@@ -328,16 +327,16 @@ describe('TRACER Edge Cases', () => {
     ];
     const tracer = calculateTRACER(results);
     expect(tracer.dimensions.reliability.score).toBe(100);
-    // Only reliability contributes: 100*0.20 = 20
-    expect(tracer.total).toBe(20);
+    // Only reliability contributes. Active weight = 0.20. Normalized = 20 / 0.20 = 100
+    expect(tracer.total).toBe(100);
   });
 
   it('should handle single sentinel correctly', () => {
     const results = [makeSentinel('x402', 90)];
     const tracer = calculateTRACER(results);
     expect(tracer.dimensions.economics.score).toBe(90);
-    // 90 * 0.10 = 9
-    expect(tracer.total).toBe(9);
-    expect(tracer.tier).toBe('FAIL');
+    // Active active weight = 0.10. Raw total = 9. Normalized = 9 / 0.10 = 90
+    expect(tracer.total).toBe(90);
+    expect(tracer.tier).toBe('VERIFIED');
   });
 });

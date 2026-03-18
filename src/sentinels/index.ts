@@ -118,20 +118,26 @@ export interface EndpointOverrides {
  */
 export async function runEndpointSentinels(endpoint: string, overrides?: EndpointOverrides): Promise<OrchestratorResult> {
   const timestamp = new Date().toISOString();
-  const mcpUrl = overrides?.mcp || endpoint;
-  const a2aUrl = overrides?.a2a || endpoint;
-  const x402Url = overrides?.x402 || endpoint;
-
-  logger.info({ endpoint, mcp: mcpUrl, a2a: a2aUrl, x402: x402Url }, 'Starting endpoint sentinel scan');
-
-  const namedChecks = [
+  const namedChecks: Array<{ name: string; fn: () => Promise<SentinelResult> }> = [
     { name: 'health', fn: () => checkHealth(endpoint) },
     { name: 'tls', fn: () => checkTLS(endpoint) },
     { name: 'latency', fn: () => checkLatency(endpoint) },
-    { name: 'a2a', fn: () => checkA2A(a2aUrl) },
-    { name: 'mcp', fn: () => checkMCP(mcpUrl) },
-    { name: 'x402', fn: () => checkX402(x402Url) },
   ];
+
+  if (overrides?.a2a) {
+    const a2aUrl = overrides.a2a;
+    namedChecks.push({ name: 'a2a', fn: () => checkA2A(a2aUrl) });
+  }
+
+  if (overrides?.mcp) {
+    const mcpUrl = overrides.mcp;
+    namedChecks.push({ name: 'mcp', fn: () => checkMCP(mcpUrl) });
+  }
+
+  if (overrides?.x402) {
+    const x402Url = overrides.x402;
+    namedChecks.push({ name: 'x402', fn: () => checkX402(x402Url) });
+  }
 
   const settled = await Promise.allSettled(namedChecks.map((c) => c.fn()));
 
