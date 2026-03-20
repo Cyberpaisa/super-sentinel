@@ -450,11 +450,20 @@ body::before {
   animation: marquee 25s linear infinite;
 }
 
-/* Glass panel effect */
+/* Glass panel — Obsidian spec */
 .glass-panel {
-  background: rgba(43, 53, 70, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(38, 38, 38, 0.4);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(72, 72, 72, 0.15);
+}
+
+/* Hero gradient text */
+.hero-gradient-text {
+  background: linear-gradient(to bottom, #ffffff 30%, #b4c0ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Text glow */
@@ -464,6 +473,6 @@ body::before {
 
 /* Dot grid background */
 .dot-grid {
-  background-image: radial-gradient(#00eefc 1px, transparent 1px);
+  background-image: radial-gradient(rgba(72, 72, 72, 0.8) 1px, transparent 1px);
   background-size: 40px 40px;
 }
