@@ -8,19 +8,19 @@ const steps = [
     icon: Cpu,
     title: 'Ingest',
     description:
-      'Agents connect to the Sentinel mesh via standard APIs or decentralized protocols.',
+      'Stream agent telemetry and intent data through secure zero-knowledge tunnels.',
   },
   {
     icon: Brain,
     title: 'Evaluate',
     description:
-      'Our neural engine runs real-time trust scoring and behavioral analysis.',
+      'The Sentinel core processes trust scores using multi-vector neural analysis.',
   },
   {
     icon: Shield,
     title: 'Authenticate',
     description:
-      'Verified intents are cryptographically signed and cleared for execution.',
+      'Cryptographic proof is generated and broadcast to the settlement layer.',
   },
 ];
 
@@ -49,17 +49,22 @@ export function HowItWorksSection() {
   return (
     <div ref={ref} className="relative mx-auto max-w-6xl px-8 py-32 overflow-hidden">
       {/* Dot grid background */}
-      <div
-        className="absolute inset-0 opacity-10 dot-grid"
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 opacity-10 dot-grid" aria-hidden="true" />
 
-      {/* Header */}
-      <div className="relative">
-        <h2
-          className={`font-[var(--font-headline)] text-4xl md:text-5xl font-bold text-white text-center mb-24 ${
+      {/* Header with serif kicker */}
+      <div className="relative mb-20 text-center">
+        <p
+          className={`font-[var(--font-serif)] italic text-2xl text-[#ababab] mb-4 ${
             visible ? 'animate-fade-in-up' : 'opacity-0'
           }`}
+        >
+          Protocol Flow
+        </p>
+        <h2
+          className={`font-[var(--font-display)] text-4xl md:text-5xl font-bold text-white tracking-tight ${
+            visible ? 'animate-fade-in-up' : 'opacity-0'
+          }`}
+          style={{ animationDelay: visible ? '100ms' : '0ms' }}
         >
           Three Layers of Intelligence
         </h2>
@@ -72,7 +77,7 @@ export function HowItWorksSection() {
           return (
             <div
               key={item.title}
-              className={`text-center space-y-6 ${
+              className={`text-center ${
                 visible ? 'animate-fade-in-up' : 'opacity-0'
               }`}
               style={{
@@ -80,16 +85,14 @@ export function HowItWorksSection() {
               }}
             >
               {/* Icon box */}
-              <div className="relative inline-block">
-                <div className="w-20 h-20 bg-[#162030] rounded-2xl flex items-center justify-center border border-[#3b494b]/20 mx-auto">
-                  <Icon className="h-9 w-9 text-[#00eefc]" />
-                </div>
+              <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+                <Icon className="h-9 w-9 text-[#8cf6ff]" />
               </div>
 
-              <h3 className="font-[var(--font-headline)] text-2xl font-bold text-white">
+              <h3 className="font-[var(--font-display)] text-2xl font-bold text-white mb-4">
                 {item.title}
               </h3>
-              <p className="text-[#b9cacb] text-sm leading-relaxed">
+              <p className="text-[#ababab] text-sm leading-relaxed">
                 {item.description}
               </p>
             </div>
