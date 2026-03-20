@@ -1,89 +1,101 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Cpu, Brain, Shield } from 'lucide-react';
 
 const steps = [
   {
-    step: '01',
-    title: 'Discover',
+    icon: Cpu,
+    title: 'Ingest',
     description:
-      'Browse the Scanner to find autonomous agents registered on Avalanche. Filter by type, status, or trust score.',
+      'Agents connect to the Sentinel mesh via standard APIs or decentralized protocols.',
   },
   {
-    step: '02',
-    title: 'Verify',
+    icon: Brain,
+    title: 'Evaluate',
     description:
-      'Centinela analyzes each agent for proxy patterns, OpenZeppelin compliance, and uptime to generate a Trust Score.',
+      'Our neural engine runs real-time trust scoring and behavioral analysis.',
   },
   {
-    step: '03',
-    title: 'Monitor',
+    icon: Shield,
+    title: 'Authenticate',
     description:
-      'Track agent health over time with heartbeat monitoring, volume analysis, and community ratings.',
+      'Verified intents are cryptographically signed and cleared for execution.',
   },
 ];
 
 export function HowItWorksSection() {
-  const headerRef = useRef<HTMLDivElement>(null);
-  const stepsRef = useRef<HTMLDivElement>(null);
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const [stepsVisible, setStepsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const header = headerRef.current;
-    const stepsContainer = stepsRef.current;
+    const el = ref.current;
+    if (!el) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.target === header && entry.isIntersecting) {
-            setHeaderVisible(true);
-          }
-          if (entry.target === stepsContainer && entry.isIntersecting) {
-            setStepsVisible(true);
-          }
-        });
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el);
+        }
       },
       { threshold: 0.2, rootMargin: '0px 0px -50px 0px' }
     );
 
-    if (header) observer.observe(header);
-    if (stepsContainer) observer.observe(stepsContainer);
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section className="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <div ref={ref} className="relative mx-auto max-w-6xl px-8 py-32 overflow-hidden">
+      {/* Dot grid background */}
       <div
-        ref={headerRef}
-        className={`mb-16 text-center ${headerVisible ? 'animate-fade-in-up' : 'opacity-0'}`}
-      >
-        <h2 className="mb-4 text-3xl font-bold text-white lg:text-4xl">
-          How It Works
+        className="absolute inset-0 opacity-10 dot-grid"
+        aria-hidden="true"
+      />
+
+      {/* Header */}
+      <div className="relative">
+        <h2
+          className={`font-[var(--font-headline)] text-4xl md:text-5xl font-bold text-white text-center mb-24 ${
+            visible ? 'animate-fade-in-up' : 'opacity-0'
+          }`}
+        >
+          Three Layers of Intelligence
         </h2>
-        <p className="mx-auto max-w-2xl text-text-secondary">
-          Three simple steps to evaluate the trustworthiness of any autonomous agent.
-        </p>
       </div>
 
-      <div ref={stepsRef} className="grid grid-cols-1 gap-8 md:grid-cols-3">
-        {steps.map((item, index) => (
-          <div
-            key={item.step}
-            className={`relative text-center group hover-lift p-6 ${stepsVisible ? 'animate-fade-in-up' : 'opacity-0'}`}
-            style={{ animationDelay: stepsVisible ? `${index * 150}ms` : '0ms' }}
-          >
-            <div className="mb-4 text-5xl font-extrabold text-primary/20 transition-all group-hover:text-primary/40 group-hover:scale-110 number-animate">
-              {item.step}
+      {/* Steps */}
+      <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12">
+        {steps.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.title}
+              className={`text-center space-y-6 ${
+                visible ? 'animate-fade-in-up' : 'opacity-0'
+              }`}
+              style={{
+                animationDelay: visible ? `${200 + index * 150}ms` : '0ms',
+              }}
+            >
+              {/* Icon box */}
+              <div className="relative inline-block">
+                <div className="w-20 h-20 bg-[#162030] rounded-2xl flex items-center justify-center border border-[#3b494b]/20 mx-auto">
+                  <Icon className="h-9 w-9 text-[#00eefc]" />
+                </div>
+              </div>
+
+              <h3 className="font-[var(--font-headline)] text-2xl font-bold text-white">
+                {item.title}
+              </h3>
+              <p className="text-[#b9cacb] text-sm leading-relaxed">
+                {item.description}
+              </p>
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-white">{item.title}</h3>
-            <p className="text-sm leading-relaxed text-text-secondary">
-              {item.description}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 }
