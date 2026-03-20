@@ -35,7 +35,7 @@ export function Header() {
         className={cn(
           'fixed left-0 right-0 top-0 z-50 transition-all duration-300',
           scrolled
-            ? 'bg-[#091423]/80 backdrop-blur-xl'
+            ? 'bg-black/80 backdrop-blur-xl'
             : 'bg-transparent',
         )}
       >
@@ -50,7 +50,7 @@ export function Header() {
               height={28}
               className="rounded-lg object-contain transition-opacity group-hover:opacity-80"
             />
-            <span className="text-xl font-bold tracking-[-0.04em] text-white font-[var(--font-headline)]">
+            <span className="text-xl font-bold tracking-tighter text-white font-[var(--font-display)]">
               SuperSentinel
             </span>
           </Link>
@@ -64,10 +64,10 @@ export function Header() {
                   key={link.href + link.label}
                   href={link.href}
                   className={cn(
-                    'font-[var(--font-headline)] text-sm tracking-tight transition-colors duration-150',
+                    'font-[var(--font-display)] text-sm font-medium tracking-tight transition-colors duration-150',
                     active
-                      ? 'text-white font-bold border-b border-[#00F0FF] pb-1'
-                      : 'text-slate-400 hover:text-white',
+                      ? 'text-white font-semibold'
+                      : 'text-white/80 hover:text-white',
                   )}
                 >
                   {link.label}
@@ -83,7 +83,7 @@ export function Header() {
             </div>
             <Link
               href="/scanner"
-              className="hidden md:flex items-center rounded-full bg-[#f6f6f6] px-6 py-2 text-sm font-bold tracking-tight text-[#2f3131] transition-transform active:scale-[0.95]"
+              className="hidden md:flex items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold tracking-tight text-black transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] active:scale-[0.95]"
             >
               Launch App
             </Link>
@@ -91,7 +91,7 @@ export function Header() {
             {/* Mobile toggle */}
             <button
               onClick={() => setOpen(p => !p)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white md:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:text-white md:hidden"
             >
               {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
@@ -101,7 +101,7 @@ export function Header() {
         {/* Mobile menu */}
         <div className={cn(
           'md:hidden overflow-hidden transition-all duration-200',
-          'bg-[#091423]/98 backdrop-blur-xl',
+          'bg-black/95 backdrop-blur-xl',
           open ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0',
         )}>
           <nav className="flex flex-col px-8 py-4 gap-1">
@@ -112,8 +112,8 @@ export function Header() {
                   key={link.href + link.label}
                   href={link.href}
                   className={cn(
-                    'rounded-md px-3 py-2.5 text-sm font-medium transition-all font-[var(--font-headline)]',
-                    active ? 'text-white' : 'text-slate-400',
+                    'rounded-md px-3 py-2.5 text-sm font-medium transition-all font-[var(--font-display)]',
+                    active ? 'text-white' : 'text-white/60',
                   )}
                 >
                   {link.label}

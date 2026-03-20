@@ -10,14 +10,14 @@ interface FooterProps {
 const footerLinks = {
   product: [
     { href: '/scanner',        label: 'Scanner'        },
-    { href: '/scanner/agents', label: 'Agent Registry' },
+    { href: '/scanner/agents', label: 'Agents'         },
     { href: '/register',       label: 'Register Agent' },
   ],
-  resources: [
+  company: [
     { href: '/docs',           label: 'Documentation'  },
     { href: '/docs/api',       label: 'API Reference'  },
   ],
-  social: [
+  security: [
     { href: 'https://x.com/snowrail_latam?s=20', label: 'Twitter/X', external: true },
   ],
 };
@@ -26,16 +26,11 @@ export const Footer: FC<FooterProps> = ({ className }) => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer
-      className={cn(
-        'w-full py-16 px-8 border-t border-white/5 bg-[#050e1d]',
-        className
-      )}
-    >
+    <footer className={cn('w-full py-20 px-8 bg-black', className)}>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-6xl mx-auto">
         {/* Branding */}
-        <div className="col-span-2 md:col-span-1">
-          <Link href="/" className="flex items-center gap-2.5 w-fit mb-6">
+        <div className="col-span-2 md:col-span-1 space-y-6">
+          <Link href="/" className="flex items-center gap-2.5 w-fit">
             <Image
               src="/enigma.png"
               alt="SuperSentinel"
@@ -43,86 +38,67 @@ export const Footer: FC<FooterProps> = ({ className }) => {
               height={24}
               className="rounded-md object-contain"
             />
-            <span className="font-[var(--font-headline)] text-lg font-bold text-white">
+            <span className="font-[var(--font-display)] text-xl font-black text-white italic">
               SuperSentinel
             </span>
           </Link>
-          <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
-            The global standard for autonomous agent verification and trust monitoring.
+          <p className="text-[#ababab] text-sm leading-relaxed max-w-xs">
+            Trust Intelligence for the next generation of autonomous digital
+            economies.
           </p>
         </div>
 
         {/* Product */}
-        <div>
-          <h5 className="font-[var(--font-headline)] text-sm font-bold text-white mb-6">
-            Product
-          </h5>
-          <ul className="space-y-4">
-            {footerLinks.product.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href as '/'}
-                  className="text-sm text-slate-500 hover:text-[#00F0FF] transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <FooterColumn title="Product" links={footerLinks.product} />
 
-        {/* Resources */}
-        <div>
-          <h5 className="font-[var(--font-headline)] text-sm font-bold text-white mb-6">
-            Resources
-          </h5>
-          <ul className="space-y-4">
-            {footerLinks.resources.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href as '/'}
-                  className="text-sm text-slate-500 hover:text-[#00F0FF] transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Company */}
+        <FooterColumn title="Resources" links={footerLinks.company} />
 
-        {/* Social */}
-        <div>
-          <h5 className="font-[var(--font-headline)] text-sm font-bold text-white mb-6">
-            Social
-          </h5>
-          <ul className="space-y-4">
-            {footerLinks.social.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href as '/'}
-                  className="text-sm text-slate-500 hover:text-[#00F0FF] transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Security */}
+        <FooterColumn
+          title="Social"
+          links={footerLinks.security}
+          external
+        />
       </div>
 
       {/* Bottom */}
-      <div className="max-w-6xl mx-auto mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-sm text-slate-400">
-          &copy; {currentYear} SuperSentinel. All rights reserved.
-        </p>
-        <p className="text-xs text-slate-500">
-          Built for the Avalanche ecosystem
-        </p>
+      <div className="max-w-6xl mx-auto mt-20 pt-8 border-t border-[#484848]/10 text-[#484848] text-xs">
+        &copy; {currentYear} SuperSentinel. Trust Intelligence for Autonomous
+        Agents.
       </div>
     </footer>
   );
 };
+
+function FooterColumn({
+  title,
+  links,
+  external,
+}: {
+  title: string;
+  links: { href: string; label: string; external?: boolean }[];
+  external?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm uppercase tracking-widest text-[#00eefc] mb-2 font-medium">
+        {title}
+      </p>
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href as '/'}
+          className="text-[#484848] hover:text-[#8cf6ff] transition-colors duration-300 text-sm"
+          {...(external || link.external
+            ? { target: '_blank', rel: 'noopener noreferrer' }
+            : {})}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 export default Footer;
