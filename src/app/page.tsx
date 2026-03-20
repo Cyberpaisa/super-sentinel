@@ -19,7 +19,7 @@ export default function HomePage() {
       <Header />
 
       {/* ─── HERO ─── */}
-      <section className="relative pt-44 pb-32 px-8 overflow-hidden">
+      <section className="relative min-h-[calc(100vh-5rem)] flex flex-col items-center justify-center px-8 pb-24 overflow-visible bg-black">
         {/* Background Orbs */}
         <div
           className="pointer-events-none absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[#043aeb]/20 blur-[120px]"
@@ -30,7 +30,7 @@ export default function HomePage() {
           aria-hidden="true"
         />
 
-        <div className="max-w-5xl mx-auto text-center relative z-10">
+        <div className="max-w-5xl w-full mx-auto text-center relative z-10 pt-8">
           {/* Mainnet Live — ping badge */}
           <div className="inline-flex items-center gap-3 mb-8 px-4 py-1.5 rounded-full glass-panel">
             <span className="relative flex h-2 w-2">
@@ -43,12 +43,12 @@ export default function HomePage() {
           </div>
 
           {/* Pre-headline — Instrument Serif Italic */}
-          <p className="font-[var(--font-serif)] italic text-3xl md:text-5xl text-[#ababab] mb-4">
+          <p className="font-[var(--font-serif)] italic text-[clamp(1.5rem,4vw,3rem)] text-[#ababab] mb-4">
             Trust Intelligence for
           </p>
 
           {/* Main Headline — Instrument Sans gradient */}
-          <h1 className="hero-gradient-text font-[var(--font-display)] font-bold text-6xl md:text-[136px] leading-[0.9] tracking-tighter mb-12">
+          <h1 className="hero-gradient-text font-[var(--font-display)] font-bold text-[clamp(3.5rem,12vw,136px)] leading-[0.95] tracking-tighter mb-8 pb-4">
             Autonomous
             <br />
             Agents
@@ -81,7 +81,7 @@ export default function HomePage() {
         </div>
 
         {/* Dashboard Mockup */}
-        <div className="max-w-6xl mx-auto mt-24 relative z-10">
+        <div className="max-w-6xl w-full mx-auto mt-16 relative z-10">
           {/* Window chrome */}
           <div className="glass-panel rounded-t-2xl p-3 flex items-center justify-between">
             <div className="flex gap-1.5 px-2">
@@ -96,7 +96,7 @@ export default function HomePage() {
           </div>
 
           {/* Dashboard body */}
-          <div className="glass-panel rounded-b-2xl p-8 grid grid-cols-1 md:grid-cols-12 gap-8 shadow-[0px_24px_48px_rgba(0,0,0,0.8)]">
+          <div className="glass-panel rounded-b-2xl p-8 grid grid-cols-1 md:grid-cols-12 gap-16 shadow-[0px_24px_48px_rgba(0,0,0,0.8)]">
             {/* Left: Trust Score Gauge */}
             <div className="md:col-span-4 flex flex-col items-center justify-center p-8 bg-[#131313] rounded-2xl">
               <div className="relative w-48 h-48 flex items-center justify-center">
