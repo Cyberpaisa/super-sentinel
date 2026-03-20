@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import {
   ArrowRight,
+  Fingerprint,
   ShieldCheck,
-  Database,
   Network,
-  BadgeCheck,
-  Activity,
+  Brain,
+  ShieldAlert,
   Zap,
 } from 'lucide-react';
 import { Header, Footer } from '@/components/layout';
@@ -15,252 +15,256 @@ export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#091423] text-[#d9e3f8] selection:bg-[#00eefc]/20 selection:text-white">
+    <div className="min-h-screen bg-black text-white selection:bg-[#8cf6ff]/20 selection:text-white overflow-x-hidden">
       <Header />
 
       {/* ─── HERO ─── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
-        {/* Animated Orb Background */}
+      <section className="relative pt-44 pb-32 px-8 overflow-hidden">
+        {/* Background Orbs */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full -z-10 opacity-60"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(0, 238, 252, 0.15) 0%, rgba(9, 20, 35, 0) 70%)',
-          }}
+          className="pointer-events-none absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[#043aeb]/20 blur-[120px]"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute bottom-[20%] right-[-5%] w-[500px] h-[500px] rounded-full bg-[#8cf6ff]/10 blur-[100px]"
           aria-hidden="true"
         />
 
-        <div className="max-w-4xl text-center z-10 space-y-8">
-          {/* Mainnet Live Badge */}
-          <div className="animate-fade-in stagger-1 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2b3546] border border-[#3b494b]/20">
-            <span className="w-2 h-2 rounded-full bg-[#00eefc] animate-pulse" />
-            <span className="text-xs text-[#7df4ff] uppercase tracking-widest font-medium">
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          {/* Mainnet Live — ping badge */}
+          <div className="inline-flex items-center gap-3 mb-8 px-4 py-1.5 rounded-full glass-panel">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-[#8cf6ff] opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#8cf6ff]" />
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-[#ababab] font-medium">
               Mainnet Live
             </span>
           </div>
 
-          {/* Headline */}
-          <h1 className="animate-fade-in-up stagger-2 font-[var(--font-headline)] text-6xl md:text-8xl font-bold text-white tracking-tighter leading-[0.9] text-glow">
-            Trust Intelligence for{' '}
-            <span className="text-[#00eefc]">Autonomous</span> Agents.
-          </h1>
-
-          {/* Subtitle */}
-          <p className="animate-fade-in-up stagger-3 text-xl text-[#b9cacb] max-w-2xl mx-auto font-light leading-relaxed">
-            Secure your agentic workflows with high-precision verification,
-            real-time trust scoring, and decentralized compliance.
+          {/* Pre-headline — Instrument Serif Italic */}
+          <p className="font-[var(--font-serif)] italic text-3xl md:text-5xl text-[#ababab] mb-4">
+            Trust Intelligence for
           </p>
 
+          {/* Main Headline — Instrument Sans gradient */}
+          <h1 className="hero-gradient-text font-[var(--font-display)] font-bold text-6xl md:text-[136px] leading-[0.9] tracking-tighter mb-12">
+            Autonomous
+            <br />
+            Agents
+          </h1>
+
           {/* CTA Buttons */}
-          <div className="animate-fade-in-up stagger-4 flex flex-col md:flex-row items-center justify-center gap-4 pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            {/* Primary — White pill with blue arrow */}
             <Link
               href="/scanner"
-              className="group inline-flex items-center gap-2 bg-[#f6f6f6] text-[#2f3131] px-8 py-4 rounded-full font-[var(--font-headline)] font-bold text-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all active:scale-[0.95]"
+              className="group inline-flex items-center gap-3 pl-6 pr-2 py-2 rounded-full bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-[1.02] transition-all duration-200"
             >
-              Get Started
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+              <span className="font-[var(--font-display)] font-medium text-lg text-[#0a0400]">
+                Get Started
+              </span>
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#043aeb] group-hover:bg-[#0036e2] transition-colors">
+                <ArrowRight className="h-5 w-5 text-white" />
+              </span>
             </Link>
+
+            {/* Secondary — Ghost */}
             <Link
               href="/docs"
-              className="glass-panel text-white border border-[#3b494b]/30 px-8 py-4 rounded-full font-[var(--font-headline)] font-bold text-lg hover:bg-[#2b3546] transition-all"
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white/70 hover:text-white backdrop-blur-sm hover:bg-white/5 transition-all"
             >
               Watch Demo
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </div>
 
         {/* Dashboard Mockup */}
-        <div className="animate-fade-in-up stagger-5 mt-24 w-full max-w-6xl mx-auto relative px-4">
-          <div className="glass-panel border border-[#3b494b]/20 rounded-t-2xl p-6 shadow-2xl">
-            {/* Window Chrome */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/40" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/40" />
-                <div className="w-3 h-3 rounded-full bg-green-500/40" />
-              </div>
-              <div className="px-4 py-1.5 rounded-md bg-[#050e1d] border border-[#3b494b]/10 text-[10px] text-[#b9cacb] font-mono">
-                https://sentinel.network/dashboard/agent-v42
-              </div>
+        <div className="max-w-6xl mx-auto mt-24 relative z-10">
+          {/* Window chrome */}
+          <div className="glass-panel rounded-t-2xl p-3 flex items-center justify-between">
+            <div className="flex gap-1.5 px-2">
+              <div className="w-3 h-3 rounded-full bg-red-500/20" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
+              <div className="w-3 h-3 rounded-full bg-green-500/20" />
             </div>
-
-            <div className="grid grid-cols-12 gap-6">
-              {/* Left: Trust Score Gauge */}
-              <div className="col-span-12 md:col-span-4">
-                <div className="bg-[#121c2b] rounded-lg p-6 border border-[#3b494b]/5">
-                  <div className="text-[10px] uppercase tracking-widest text-[#b9cacb] mb-4 font-bold">
-                    Global Trust Score
-                  </div>
-                  <div className="relative flex items-center justify-center py-4">
-                    <svg className="w-32 h-32 -rotate-90" viewBox="0 0 128 128">
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="58"
-                        fill="transparent"
-                        stroke="#2b3546"
-                        strokeWidth="8"
-                      />
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="58"
-                        fill="transparent"
-                        stroke="#00eefc"
-                        strokeWidth="8"
-                        strokeDasharray="364.4"
-                        strokeDashoffset="40"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-[var(--font-headline)] font-bold text-white">
-                        94
-                      </span>
-                      <span className="text-[10px] text-[#7df4ff]">
-                        HEALTHY
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Performance Chart */}
-              <div className="col-span-12 md:col-span-8">
-                <div className="bg-[#121c2b] rounded-lg p-6 border border-[#3b494b]/5 h-full">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="text-[10px] uppercase tracking-widest text-[#b9cacb] font-bold">
-                      Agent Performance
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#00eefc]" />
-                      <div className="w-2 h-2 rounded-full bg-[#2b3546]" />
-                    </div>
-                  </div>
-                  <div className="h-32 flex items-end gap-2">
-                    {[12, 24, 16, 28, 32, 20, 24].map((h, i) => (
-                      <div
-                        key={i}
-                        className="w-full bg-[#00eefc]/20 rounded-sm border-t-2 border-[#00eefc]"
-                        style={{ height: `${h * 4}px` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="bg-[#131313] px-12 py-1 rounded-full text-[10px] text-[#ababab] font-mono">
+              supersentinel.ai/dashboard/live-nodes
             </div>
+            <div className="w-12" />
           </div>
-        </div>
-      </section>
 
-      {/* ─── METRICS BAR ─── */}
-      <section className="py-20 bg-[#050e1d] border-y border-[#3b494b]/10">
-        <div className="max-w-6xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-12">
-          <MetricBar value="2.4M+" label="Daily Verifications" progress={75} />
-          <MetricBar value="99.9%" label="Uptime Precision" progress={99} />
-          <MetricBar value="<14ms" label="Validation Latency" progress={50} />
-          <MetricBar value="500+" label="Active Protocols" progress={66} />
-        </div>
-      </section>
-
-      {/* ─── TRUST STRIP (Logo Marquee) ─── */}
-      <section className="py-12 bg-[#050e1d] overflow-hidden">
-        <div className="flex animate-marquee whitespace-nowrap">
-          {[0, 1].map((set) => (
-            <div
-              key={set}
-              className="flex items-center gap-24 px-12 opacity-40 grayscale"
-            >
-              {['Avalanche', 'Chainlink', 'Ethereum', 'Solana', 'Arbitrum', 'Polygon'].map(
-                (name) => (
-                  <span
-                    key={`${set}-${name}`}
-                    className="font-[var(--font-headline)] text-lg font-bold text-white/60 tracking-tight"
-                  >
-                    {name}
+          {/* Dashboard body */}
+          <div className="glass-panel rounded-b-2xl p-8 grid grid-cols-1 md:grid-cols-12 gap-8 shadow-[0px_24px_48px_rgba(0,0,0,0.8)]">
+            {/* Left: Trust Score Gauge */}
+            <div className="md:col-span-4 flex flex-col items-center justify-center p-8 bg-[#131313] rounded-2xl">
+              <div className="relative w-48 h-48 flex items-center justify-center">
+                <svg
+                  className="w-full h-full -rotate-90"
+                  viewBox="0 0 192 192"
+                >
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="88"
+                    fill="transparent"
+                    stroke="#262626"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="88"
+                    fill="transparent"
+                    stroke="#8cf6ff"
+                    strokeWidth="8"
+                    strokeDasharray="552.92"
+                    strokeDashoffset="33.17"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-5xl font-[var(--font-display)] font-bold text-white">
+                    94
                   </span>
-                )
-              )}
+                  <span className="text-[10px] uppercase tracking-widest text-[#ababab]">
+                    Healthy
+                  </span>
+                </div>
+              </div>
+              <p className="mt-6 text-sm text-[#ababab] text-center">
+                System Integrity Score
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ─── CAPABILITIES GRID ─── */}
-      <section className="py-32 px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-20 space-y-4">
-            <h2 className="font-[var(--font-headline)] text-4xl md:text-5xl font-bold text-white tracking-tight">
-              System Capabilities
-            </h2>
-            <p className="text-[#b9cacb] max-w-xl">
-              Engineered for the next generation of autonomous intelligence and
-              machine-to-machine economies.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <CapabilityCard
-              number="01"
-              icon={<ShieldCheck className="h-8 w-8" />}
-              title="Neural Fingerprinting"
-              description="Cryptographic proof of identity for LLMs and autonomous agents across distributed networks."
-            />
-            <CapabilityCard
-              number="02"
-              icon={<Database className="h-8 w-8" />}
-              title="Real-time Compliance"
-              description="Automated regulatory adherence monitoring for cross-border agent transactions."
-            />
-            <CapabilityCard
-              number="03"
-              icon={<Network className="h-8 w-8" />}
-              title="Mesh Governance"
-              description="Decentralized decision-making protocols for autonomous swarms and DAO-managed agents."
-            />
-            <CapabilityCard
-              number="04"
-              icon={<BadgeCheck className="h-8 w-8" />}
-              title="Intent Verification"
-              description="Ensuring agent actions align with user intent through zero-knowledge execution proofs."
-            />
-            <CapabilityCard
-              number="05"
-              icon={<Activity className="h-8 w-8" />}
-              title="Adversarial Defense"
-              description="Machine learning models that detect and neutralize prompt injection and social engineering."
-            />
-            <CapabilityCard
-              number="06"
-              icon={<Zap className="h-8 w-8" />}
-              title="Instant Settlement"
-              description="High-throughput payment rails designed specifically for micro-transactions between agents."
-            />
+            {/* Right: Network Load Chart */}
+            <div className="md:col-span-8 bg-[#131313] rounded-2xl p-6 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="font-[var(--font-display)] font-bold text-white">
+                    Network Load
+                  </h3>
+                  <p className="text-xs text-[#ababab]">
+                    Real-time verification spikes
+                  </p>
+                </div>
+                <span className="text-[#8cf6ff] font-mono text-xs">
+                  +12.4%
+                </span>
+              </div>
+              <div className="flex items-end gap-2 h-40">
+                {[40, 65, 50, 85, 60, 95, 70, 45].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 bg-[#8cf6ff] rounded-t-sm transition-all duration-500"
+                    style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── LIVE STATS TICKER ─── */}
-      <div className="bg-[#2b3546]/30 border-y border-[#3b494b]/10 py-3 overflow-hidden">
-        <div className="flex gap-12 animate-marquee-fast whitespace-nowrap">
+      {/* ─── LIVE TICKER ─── */}
+      <div className="w-full bg-[#191919] py-3 overflow-hidden whitespace-nowrap">
+        <div className="flex gap-12 animate-marquee-fast font-mono text-[11px] text-[#8cf6ff]/80">
           {[0, 1].map((set) => (
-            <div
-              key={set}
-              className="flex items-center gap-12 text-[10px] font-mono text-[#7df4ff]/70"
-            >
-              <span>EVENT: AGENT_VERIFIED_774 [TXID: 0x44...f9e]</span>
-              <span className="w-1 h-1 bg-[#3b494b] rounded-full" />
-              <span>TRUST_SCORE_UPDATE: +2.4pts [ORACLE_SOURCE: SSN_1]</span>
-              <span className="w-1 h-1 bg-[#3b494b] rounded-full" />
-              <span>NEW_NODE_JOINED: REGION_ASIA_PACIFIC</span>
-              <span className="w-1 h-1 bg-[#3b494b] rounded-full" />
-              <span>THREAT_NEUTRALIZED: PROMPT_INJECTION_DETECTED</span>
+            <div key={set} className="flex items-center gap-12">
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8cf6ff]" />
+                AGENT_VERIFIED: #8291-ALPHA
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8cf6ff]" />
+                TRUST_SCORE_UPDATE: 0.992
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#ff716c]" />
+                THREAT_NEUTRALIZED: VECTOR_X7
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8cf6ff]" />
+                AGENT_VERIFIED: #1104-OMEGA
+              </span>
             </div>
           ))}
         </div>
       </div>
 
+      {/* ─── METRICS ─── */}
+      <section className="py-24 px-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12">
+          <MetricBar value="2.4M+" label="Daily Verifications" progress={85} />
+          <MetricBar value="99.9%" label="Uptime SLA" progress={99} />
+          <MetricBar value="<14ms" label="Inference Latency" progress={70} />
+          <MetricBar value="500+" label="Enterprise Nodes" progress={60} />
+        </div>
+      </section>
+
+      {/* ─── LOGO MARQUEE ─── */}
+      <section className="py-12">
+        <div className="max-w-6xl mx-auto overflow-hidden">
+          <div className="flex justify-around items-center opacity-40 grayscale font-[var(--font-display)] font-bold text-2xl tracking-tighter gap-12 whitespace-nowrap px-8">
+            {['Avalanche', 'Chainlink', 'Ethereum', 'Solana', 'Arbitrum', 'Polygon', 'Base'].map(
+              (name) => (
+                <span key={name}>{name}</span>
+              )
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CAPABILITIES ─── */}
+      <section className="py-32 px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <p className="font-[var(--font-serif)] italic text-2xl text-[#ababab] mb-4">
+              Enterprise-grade
+            </p>
+            <h2 className="font-[var(--font-display)] text-5xl font-bold tracking-tight text-white">
+              Agent Capabilities
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <CapabilityCard
+              icon={<Fingerprint className="h-6 w-6" />}
+              title="Neural Fingerprinting"
+              description="Unique cryptographic identity for every autonomous instance in your fleet."
+            />
+            <CapabilityCard
+              icon={<ShieldCheck className="h-6 w-6" />}
+              title="Real-time Compliance"
+              description="Dynamic policy enforcement for cross-border agent transactions."
+            />
+            <CapabilityCard
+              icon={<Network className="h-6 w-6" />}
+              title="Mesh Governance"
+              description="Decentralized oversight for multi-agent coordination systems."
+            />
+            <CapabilityCard
+              icon={<Brain className="h-6 w-6" />}
+              title="Intent Verification"
+              description="Probabilistic modeling to ensure agent actions align with owner goals."
+            />
+            <CapabilityCard
+              icon={<ShieldAlert className="h-6 w-6" />}
+              title="Adversarial Defense"
+              description="Protection against prompt injection and logic-bomb attacks."
+            />
+            <CapabilityCard
+              icon={<Zap className="h-6 w-6" />}
+              title="Instant Settlement"
+              description="Atomic swaps and sub-second payment finality for agents."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ─── HOW IT WORKS ─── */}
-      <section className="bg-[#050e1d]">
+      <section className="bg-[#131313]">
         <HowItWorksSection />
       </section>
 
@@ -269,19 +273,19 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <TestimonialCard
-              quote="SuperSentinel is the missing link in the agentic economy. It provides the trust primitives we need to scale autonomous operations safely."
+              quote="SuperSentinel is the only solution that provides the level of trust assurance our institutional clients demand for their autonomous agents."
+              name="Elena Vance"
+              role="CTO, Lumon Data"
+            />
+            <TestimonialCard
+              quote="The latency is practically non-existent. We've scaled our agent pool by 400% since integrating the Sentinel SDK."
               name="Marcus Thorne"
-              role="CTO, NeuralScale"
+              role="Head of AI, Aetherium"
             />
             <TestimonialCard
-              quote="We've reduced agent-related fraud by 84% since implementing the Sentinel trust scoring system. It's an indispensable part of our stack."
-              name="Elena Rodriguez"
-              role="Head of Trust, FinTech Collective"
-            />
-            <TestimonialCard
-              quote="The precision of their adversarial defense models is unmatched. SuperSentinel sets the standard for autonomous agent security."
-              name="David Chen"
-              role="Lead Researcher, Quantum Agents"
+              quote="Their intent verification engine caught multiple high-risk logic failures before they reached mainnet. Absolute lifesaver."
+              name="Sarah Chen"
+              role="Director of Security, Synthetix"
             />
           </div>
         </div>
@@ -290,36 +294,27 @@ export default function HomePage() {
       {/* ─── CTA ─── */}
       <section className="py-32 px-8">
         <div className="max-w-5xl mx-auto relative">
-          {/* Decorative Shapes */}
-          <div
-            className="absolute -top-12 -left-12 w-24 h-24 border border-[#00eefc]/20 rounded-full animate-pulse"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute -bottom-12 -right-12 w-32 h-32 border border-[#00eefc]/10 rounded-lg rotate-45"
-            aria-hidden="true"
-          />
-
-          <div className="glass-panel p-16 rounded-3xl border border-[#3b494b]/20 text-center space-y-8 relative overflow-hidden">
+          <div className="glass-panel rounded-3xl p-20 text-center relative overflow-hidden">
             <div
-              className="absolute inset-0 bg-gradient-to-br from-[#00eefc]/5 to-transparent"
+              className="absolute inset-0 bg-gradient-to-br from-[#8cf6ff]/10 to-transparent pointer-events-none"
               aria-hidden="true"
             />
-            <h2 className="font-[var(--font-headline)] text-5xl font-bold text-white tracking-tight relative">
-              Ready to secure your autonomy?
+            <h2 className="font-[var(--font-display)] text-5xl md:text-6xl font-bold mb-8 relative z-10 text-white">
+              Ready to secure
+              <br />
+              your autonomy?
             </h2>
-            <p className="text-[#b9cacb] max-w-lg mx-auto relative">
-              Join 200+ enterprise teams building the future of autonomous
-              intelligence with SuperSentinel.
+            <p className="text-[#ababab] max-w-xl mx-auto mb-12 relative z-10 leading-relaxed">
+              Join 500+ enterprises building the future of autonomous economic
+              activity on SuperSentinel.
             </p>
-            <div className="flex flex-col md:flex-row max-w-md mx-auto gap-3 relative">
-              <Link
-                href="/scanner"
-                className="flex-1 bg-[#00eefc] text-[#00363a] px-8 py-4 rounded-full font-[var(--font-headline)] font-bold hover:brightness-110 transition-all text-center whitespace-nowrap"
-              >
-                Get Early Access
-              </Link>
-            </div>
+            <Link
+              href="/scanner"
+              className="relative z-10 inline-flex items-center gap-2 bg-[#8cf6ff] text-[#005459] px-12 py-5 rounded-full font-[var(--font-display)] font-bold text-lg hover:scale-[1.05] transition-transform shadow-[0_0_40px_rgba(140,246,255,0.3)]"
+            >
+              Get Access Now
+              <ArrowRight className="h-5 w-5" />
+            </Link>
           </div>
         </div>
       </section>
@@ -341,16 +336,16 @@ function MetricBar({
   progress: number;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="text-4xl font-[var(--font-headline)] font-bold text-white">
+    <div className="space-y-4">
+      <p className="text-4xl font-[var(--font-display)] font-bold text-white">
         {value}
-      </div>
-      <div className="text-xs text-[#b9cacb] uppercase tracking-widest">
+      </p>
+      <p className="text-[11px] text-[#ababab] uppercase tracking-widest">
         {label}
-      </div>
-      <div className="w-full h-1 bg-[#2b3546] rounded-full overflow-hidden">
+      </p>
+      <div className="h-1 bg-[#191919] rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#00eefc] rounded-full"
+          className="h-full bg-[#8cf6ff] rounded-full"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -359,26 +354,23 @@ function MetricBar({
 }
 
 function CapabilityCard({
-  number,
   icon,
   title,
   description,
 }: {
-  number: string;
   icon: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
-    <div className="group relative bg-[#121c2b] p-8 rounded-2xl border border-[#3b494b]/10 hover:border-[#00eefc]/50 transition-all duration-300">
-      <span className="absolute top-8 right-8 text-4xl font-[var(--font-headline)] font-bold text-white/5 group-hover:text-[#00eefc]/20 transition-colors">
-        {number}
-      </span>
-      <div className="mb-12 text-[#00eefc]">{icon}</div>
-      <h3 className="font-[var(--font-headline)] text-xl font-bold text-white mb-4">
+    <div className="group p-8 bg-[#191919] rounded-2xl hover:bg-[#1f1f1f] transition-colors duration-500">
+      <div className="w-12 h-12 rounded-full bg-[#8cf6ff]/10 flex items-center justify-center text-[#8cf6ff] mb-6 group-hover:scale-110 transition-transform duration-300">
+        {icon}
+      </div>
+      <h3 className="font-[var(--font-display)] text-xl font-bold text-white mb-3">
         {title}
       </h3>
-      <p className="text-[#b9cacb] text-sm leading-relaxed">{description}</p>
+      <p className="text-[#ababab] text-sm leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -393,18 +385,15 @@ function TestimonialCard({
   role: string;
 }) {
   return (
-    <div className="glass-panel p-10 rounded-2xl border border-[#3b494b]/10">
-      <p className="text-lg text-white font-light leading-relaxed mb-8">
+    <div className="glass-panel p-8 rounded-2xl flex flex-col justify-between">
+      <p className="text-lg italic text-white leading-relaxed mb-8">
         &ldquo;{quote}&rdquo;
       </p>
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-[#2b3546]" />
-        <div>
-          <div className="text-white font-bold text-sm">{name}</div>
-          <div className="text-[#b9cacb] text-[10px] uppercase tracking-wider">
-            {role}
-          </div>
-        </div>
+      <div>
+        <p className="text-white font-bold">{name}</p>
+        <p className="text-xs text-[#ababab] uppercase tracking-widest">
+          {role}
+        </p>
       </div>
     </div>
   );
